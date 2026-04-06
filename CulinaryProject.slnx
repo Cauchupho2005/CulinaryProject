@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CulinaryApp/CulinaryApp/CulinaryApp.csproj" />
+  <Project Path="CulinaryBackend/CulinaryBackend/CulinaryBackend.csproj" />
+</Solution>

@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
+             x:Class="CulinaryApp.MainPage"
+             BackgroundColor="#121212">
+
+    <Grid>
+        <maps:MapView x:Name="MainMap" VerticalOptions="Fill" HorizontalOptions="Fill" />
+
+        <Button Text="🎯" BackgroundColor="White" TextColor="Black" FontSize="20"
+                CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="0"
+                HorizontalOptions="End" VerticalOptions="Start" Margin="20,50,20,20"
+                Shadow="{Shadow Brush=Black, Offset='0,3', Opacity=0.3}"
+                Clicked="OnFindMyLocationClicked"/>
+
+        <Grid HorizontalOptions="{OnIdiom Desktop='Start', Phone='Fill'}"
+              VerticalOptions="{OnIdiom Desktop='Fill', Phone='End'}"
+              WidthRequest="{OnIdiom Desktop='350', Phone='-1'}"
+              HeightRequest="{OnIdiom Desktop='-1', Phone='400'}"
+              RowDefinitions="Auto, *" BackgroundColor="#1A1A1A">
+
+            <Border Grid.Row="0" BackgroundColor="#252525" Padding="15" StrokeThickness="0">
+                <Grid ColumnDefinitions="Auto, *">
+                    <Label Grid.Column="0" Text="📍" FontSize="20" VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="Điểm thuyết minh" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0,0,0" VerticalOptions="Center"/>
+                </Grid>
+            </Border>
+
+            <CollectionView Grid.Row="1" x:Name="PoiCollectionView" SelectionMode="Single" SelectionChanged="OnPoiSelected" Margin="10">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BackgroundColor="#222" StrokeShape="RoundRectangle 10" StrokeThickness="0" Margin="0,0,0,10" Padding="10">
+                            <Grid ColumnDefinitions="50, *">
+                                <Border Grid.Column="0" StrokeShape="RoundRectangle 8" BackgroundColor="#333" WidthRequest="50" HeightRequest="50" VerticalOptions="Start">
+                                    <Image Source="{Binding CoverImageUrl}" Aspect="AspectFill" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Margin="10,0,0,0">
+                                    <Label Text="{Binding Title}" TextColor="White" FontAttributes="Bold" FontSize="14" MaxLines="1"/>
+                                    <Label Text="{Binding Description}" TextColor="#AAA" FontSize="11" MaxLines="2" Margin="0,2,0,5"/>
+                                    <Label Text="{Binding DistanceText}" TextColor="#FF7A00" FontSize="11" FontAttributes="Bold"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <Border x:Name="DetailPanel" BackgroundColor="#1A1A1A" IsVisible="False"
+                VerticalOptions="Center" HorizontalOptions="Center" 
+                WidthRequest="{OnIdiom Desktop='450', Phone='350'}" HeightRequest="300"
+                Margin="20" Padding="25" StrokeShape="RoundRectangle 25" StrokeThickness="0"
+                Shadow="{Shadow Brush=Black, Offset='0,10', Opacity=0.6}">
+            <Grid RowDefinitions="Auto, *, Auto" ColumnDefinitions="80, *, Auto">
+                <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" StrokeShape="RoundRectangle 15" HeightRequest="80" VerticalOptions="Start">
+                    <Image x:Name="DetailImage" Aspect="AspectFill"/>
+                </Border>
+
+                <VerticalStackLayout Grid.Row="0" Grid.Column="1" Margin="15,0,0,0">
+                    <Label x:Name="DetailTitle" TextColor="White" FontAttributes="Bold" FontSize="16" MaxLines="2"/>
+                    <Label x:Name="DetailDistance" TextColor="#FF7A00" FontSize="13" FontAttributes="Bold" Margin="0,5,0,0"/>
+                </VerticalStackLayout>
+
+                <Button Grid.Row="0" Grid.Column="2" Text="❌" BackgroundColor="#333" TextColor="White" CornerRadius="15" WidthRequest="30" HeightRequest="30" Padding="0" Clicked="OnCloseDetailClicked" VerticalOptions="Start"/>
+
+                <Label x:Name="DetailDescription" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" TextColor="#CCC" FontSize="12" Margin="15,10,0,0" LineBreakMode="WordWrap"/>
+
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Spacing="10" HorizontalOptions="End" Margin="0,15,0,0">
+                    <Button Text="🔊 Nghe" BackgroundColor="#FF7A00" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnListenClicked"/>
+                    <Button Text="➡️ Chỉ đường" BackgroundColor="#2196F3" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnRouteClicked"/>
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentPage>

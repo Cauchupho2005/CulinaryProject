@@ -1,0 +1,6 @@
+@CulinaryBackend_HostAddress = http://localhost:5100
+
+GET {{CulinaryBackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
