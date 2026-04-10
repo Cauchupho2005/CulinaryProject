@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Thuyết Minh Du Lịch Thông Minh - Phố Ẩm Thực Vĩnh Khánh - PRD</title>
+
+
+    <style>
+
+:root {
+            --primary: #F59E0B;
+            --primary-light: #FBBF24;
+            --primary-dark: #D97706;
+            --accent: #F59E0B;
+            --accent-light: #FCD34D;
+--bg: #FAFAFA;
+            --surface: #FFFFFF;
+            --text: #212121;
+--text-secondary: #616161;
+            --border: #E0E0E0;
+            --code-bg: #263238;
+            --code-text: #EEFFFF;
+            --success: #2E7D32;
+            --warning: #F57F17;
+            --info: #1565C0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--primary);
+            color: white;
+            padding: 0 2rem;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+        }
+
+        nav .logo {
+
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -.5px;
+        }
+
+        nav .nav-links {
+            display: flex;
+            gap: .5rem;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+
+        nav .nav-links a {
+            color: rgba(255, 255, 255, .9);
+            text-decoration: none;
+            font-size: .85rem;
+            padding: .4rem .8rem;
+            border-radius: 6px;
+            transition: all .2s;
+        }
+
+        nav .nav-links a:hover,
+        nav .nav-links a.active {
+            background: rgba(255, 255, 255, .2);
+            color: #FFF;
+        }
+
+        .hero {
+            margin-top: 60px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+            color: white;
+            padding: 5rem 2rem 4rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.6rem;
+            font-weight: 800;
+            margin-bottom: .5rem;
+            letter-spacing: -1px;
+        }
+
+        .hero .subtitle {
+            font-size: 1.2rem;
+            opacity: .95;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+
+        .hero .badges {
+            display: flex;
+            justify-content: center;
+            gap: .8rem;
+            flex-wrap: wrap;
+        }
+
+        .hero .badge {
+            background: rgba(255, 255, 255, .25);
+            padding: .4rem 1rem;
+            border-radius: 25px;
+            font-size: .85rem;
+            backdrop-filter: blur(8px);
+        }
+
+        section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        section:nth-child(even) {
+            background: var(--surface);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .section-header .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .section-header .section-num {
+            font-size: .8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all .3s;
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .1);
+            transform: translateY(-4px);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: .6rem;
+            color: var(--primary-dark);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .9rem;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: .8rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: .7rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+tr:hover td {
+            background: #FEF3C7;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Cascadia Code', monospace;
+            font-size: .85rem;
+            line-height: 1.7;
+            margin: 1.5rem 0;
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+
+        .flow-step {
+            background: var(--primary);
+            color: white;
+            padding: .5rem 1.2rem;
+            border-radius: 10px;
+            font-size: .85rem;
+            font-weight: 600;
+        }
+
+        .flow-step.alt {
+            background: var(--accent);
+        }
+
+        .flow-arrow {
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+        }
+
+        .tier-list {
+            margin: 1.5rem 0;
+        }
+
+        .tier-item {
+            display: flex;
+            margin-bottom: .8rem;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .tier-label {
+            width: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .9rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2.5rem;
+            margin: 2rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(var(--primary), var(--accent));
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.5rem;
+            top: 8px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px var(--primary);
+        }
+
+.highlight {
+            border-left: 5px solid var(--primary);
+            background: #FEF3C7;
+            padding: 1.5rem;
+            border-radius: 0 12px 12px 0;
+            margin: 1.5rem 0;
+        }
+
+        .highlight.info {
+            border-color: var(--info);
+            background: #E3F2FD;
+        }
+
+        .highlight.success {
+            border-color: var(--success);
+            background: #E8F5E9;
+        }
+
+        .mermaid-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: var(--code-bg);
+            color: rgba(255, 255, 255, .8);
+            font-size: .9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            section { padding: 2.5rem 1.5rem; }
+            .card-grid { grid-template-columns: 1fr; }
+            nav .nav-links { display: none; }
+        }
+
+        .diagram-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .6rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            border: none;
+            padding: .6rem 1.2rem;
+            border-radius: 25px;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .3s;
+        }
+
+        .diagram-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0, 0, 0, .7);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diagram-overlay.active {
+            display: flex;
+        }
+
+        .diagram-modal {
+            background: white;
+            border-radius: 20px;
+            width: 95vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 90px rgba(0, 0, 0, .5);
+        }
+
+        .dm-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .dm-ctrl button {
+            background: rgba(255, 255, 255, .2);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">🍜 Food Street Guide - Vĩnh Khánh</div>
+        <ul class="nav-links">
+
+
+            <li><a href="#ch00">Overview</a></li>
+            <li><a href="#ch01">Objectives</a></li>
+            <li><a href="#ch02">Scope</a></li>
+            <li><a href="#ch03">Actors</a></li>
+            <li><a href="#ch04">Key Features</a></li>
+            <li><a href="#ch05">Geofencing</a></li>
+            <li><a href="#ch06">Audio System</a></li>
+            <li><a href="#ch07">Technical Requirements</a></li>
+            <li><a href="#ch08">CMS & Analytics</a></li>
+            <li><a href="#ch09">User Flow</a></li>
+            <li><a href="#ch10">UI/UX</a></li>
+
+
+            <li><a href="#ch11">User Stories</a></li>
+            <li><a href="#ch12">Admin Dashboard</a></li>
+            <li><a href="#ch13">End-to-End Flow</a></li>
+
+
+
+        </ul>
+    </nav>
+
+    <div class="hero">
+        <h1>Hệ Thống Thuyết Minh Du Lịch Thông Minh</h1>
+        <p class="subtitle">Food Street Guide - Phố Ẩm Thực Vĩnh Khánh. .NET MAUI Cross-platform, Geofencing tự động, TTS đa ngôn ngữ, Offline-first, CMS Web Dashboard với Analytics & Heatmap.</p>
+        <div class="badges">
+            <span class="badge">.NET MAUI Hybrid</span>
+            <span class="badge">Geofencing + GPS</span>
+            <span class="badge">Azure Cognitive TTS</span>
+            <span class="badge">SQLite Offline</span>
+            <span class="badge">SQL Server Online</span>
+            <span class="badge">Mapbox SDK</span>
+            <span class="badge">Web CMS + Analytics</span>
+        </div>
+    </div>
+
+    <section>
+
+
+    <section id="ch00">
+        <div class="section-header">
+            <div class="icon" style="background:#FFF8E6;color:var(--primary);">📋</div>
+            <div>
+                <div class="section-num">Chapter 00</div>
+                <h2>Project Overview</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>🎯 Tên dự án</h3>
+                <p><strong>Food Street Guide</strong> - Hệ Thống Thuyết Minh Du Lịch Thông Minh Phố Ẩm Thực Vĩnh Khánh</p>
+            </div>
+            <div class="card">
+                <h3>📱 Đối tượng App</h3>
+                <p>Du khách quốc tế & nội địa. Android/iOS. Offline-first.</p>
+            </div>
+            <div class="card">
+                <h3>💻 Đối tượng Web</h3>
+                <p>Admin & Quản lý quán. CMS tạo POI, upload audio, analytics heatmap.</p>
+            </div>
+            <div class="card">
+                <h3>🗺️ Phạm vi</h3>
+                <p>Phố Vĩnh Khánh ~1km, 50+ POI quán ăn. 5 ngôn ngữ (VN/EN/CN/JP/KR).</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch01">
+        <div class="section-header">
+            <div class="icon" style="background:#E8F5E9;color:var(--success);">🎯</div>
+            <div>
+                <div class="section-num">Chapter 01</div>
+                <h2>Business Objectives</h2>
+            </div>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <h4>Mục tiêu #1 - Tăng trải nghiệm du khách</h4>
+                <p>Thuyết minh tự động 5 ngôn ngữ, không cần tai nghe/guide. Giảm 80% thời gian chờ hướng dẫn viên.</p>
+            </div>
+            <div class="timeline-item">
+                <h4>Mục tiêu #2 - Hỗ trợ offline hoàn toàn</h4>
+                <p>Tải 1 lần ~50MB (POI + audio + maps), dùng mãi mãi không cần mạng.</p>
+            </div>
+            <div class="timeline-item">
+                <h4>Mục tiêu #3 - Analytics cho chủ quán</h4>
+                <p>Heatmap footfall, thời gian nghe, lộ trình di chuyển → tối ưu vị trí/menu.</p>
+            </div>
+            <div class="timeline-item">
+                <h4>Mục tiêu #4 - Zero maintenance</h4>
+                <p>Web CMS tự quản POI/audio. Admin chỉ duyệt thay đổi lớn.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch02">
+        <div class="section-header">
+            <div class="icon" style="background:#E3F2FD;color:var(--info);">📏</div>
+            <div>
+                <div class="section-num">Chapter 02</div>
+                <h2>Phạm vi & Giả định</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>In Scope</h3>
+                <ul>
+                    <li>Geofencing GPS với Haversine/native API</li>
+                    <li>TTS native + Azure Cognitive Services</li>
+                    <li>Offline SQLite + Mapbox/Here maps</li>
+                    <li>Web CMS CRUD POI/audio/tour</li>
+                    <li>Analytics heatmap/route tracking</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Out of Scope</h3>
+                <ul>
+                    <li>Thanh toán in-app</li>
+                    <li>Social login</li>
+                    <li>Push notification</li>
+                    <li>AR/VR</li>
+                    <li>Live chat</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Giả định</h3>
+                <ul>
+                    <li>GPS accuracy ±10m đủ cho geofence 30m</li>
+                    <li>Azure TTS quota đủ cho 1000 users/ngày</li>
+                    <li>Mapbox free tier đủ POI count</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch03">
+        <div class="section-header">
+            <div class="icon" style="background:#FFF3E0;color:var(--warning);">👥</div>
+            <div>
+                <div class="section-num">Chapter 03</div>
+                <h2>Actors & Personas</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Actor</th>
+                        <th>Mô tả</th>
+                        <th>Platform</th>
+                        <th>Key Needs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Du khách</strong></td>
+                        <td>Quốc tế/nội địa, 25-55 tuổi, đi bộ khám phá</td>
+                        <td>MAUI App</td>
+                        <td>Thuyết minh tự động, offline, pin tiết kiệm</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Chủ quán</strong></td>
+                        <td>Owner 50+ POI, cần analytics</td>
+                        <td>Web CMS</td>
+                        <td>Dashboard footfall, heatmap, edit POI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin</strong></td>
+                        <td>2 người, duyệt content/analytics</td>
+                        <td>Web CMS</td>
+                        <td>Approve POI, system stats, user management</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="ch04">
+        <div class="section-header">
+            <div class="icon" style="background:#E8F5E9;color:var(--success);">✨</div>
+            <div>
+                <div class="section-num">Chapter 04</div>
+                <h2>Tính năng Chính</h2>
+            </div>
+        </div>
+
+        <div class="tier-list">
+            <div class="tier-item">
+                <div class="tier-label" style="background:var(--primary);">Core</div>
+                <div class="tier-content">
+                    <strong>Geofence Triggering</strong>
+                    <span>Haversine/native API, 30m radius, debounce 3s, cooldown 5min</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:var(--accent);">Audio</div>
+                <div class="tier-content">
+                    <strong>4-Tier TTS</strong>
+                    <span>Pre-gen → On-demand Azure → Native TTS → Fallback text</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:var(--info);">Offline</div>
+                <div class="tier-content">
+                    <strong>SQLite Pack</strong>
+                    <span>POI + audio + maps ~50MB, download WiFi, use forever</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:var(--success);">CMS</div>
+                <div class="tier-content">
+                    <strong>Web Dashboard</strong>
+                    <span>CRUD POI, upload audio, analytics heatmap/route</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch05">
+        <div class="section-header">
+            <div class="icon" style="background:#E3F2FD;color:var(--info);">📡</div>
+            <div>
+                <div class="section-num">Chapter 05</div>
+                <h2>Hệ thống Geofencing</h2>
+            </div>
+        </div>
+
+        <h3>Algorithm & Implementation</h3>
+        <div class="code-block">
+POI { lat, lng, radius: 30m, priority: 1 }
+BackgroundService (iOS Always, Android FusedLocation)
+watchPosition(highAccuracy, throttle: 5s)
+
+if (Haversine(userPos, poiPos) <= radius &amp;&amp; !inside) {
+  debounceTimer = 3s
+}
+if (debounceComplete) triggerAudio()
+cooldown = 5min after exit
+        </div>
+
+        <div class="flow">
+            <span class="flow-step">GPS Update (5s)</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step alt">Haversine Calc</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step warning">Debounce 3s</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step success">TTS Play</span>
+        </div>
+    </section>
+
+    <section id="ch06">
+        <div class="section-header">
+            <div class="icon" style="background:#F3E5F5;color:#7B1FA2;">🎧</div>
+            <div>
+                <div class="section-num">Chapter 06</div>
+                <h2>Hệ thống Âm thanh (4-Tier)</h2>
+            </div>
+        </div>
+
+        <div class="tier-list">
+            <div class="tier-item">
+                <div class="tier-label" style="background:#2E7D32;">Tier 1</div>
+                <div class="tier-content">
+                    <strong>Pre-gen MP3</strong> <span>SQLite audio blob (0ms)</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:#1565C0;">Tier 2</div>
+                <div class="tier-content">
+                    <strong>Azure Cognitive</strong> <span>Neural TTS online (2-5s)</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:#FF6B35;">Tier 3</div>
+                <div class="tier-content">
+                    <strong>Native TTS</strong> <span>Android TTS/iOS AVSpeech (0ms offline)</span>
+                </div>
+            </div>
+            <div class="tier-item">
+                <div class="tier-label" style="background:#616161;">Tier 4</div>
+                <div class="tier-content">
+                    <strong>Text Fallback</strong> <span>Display text popup (silent fail)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch07">
+        <div class="section-header">
+            <div class="icon" style="background:#FFF3E0;color:var(--warning);">⚙️</div>
+            <div>
+                <div class="section-num">Chapter 07</div>
+                <h2>Yêu cầu Kỹ thuật</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>📱 .NET MAUI</h3>
+                <p>Hybrid Android/iOS single codebase</p>
+            </div>
+            <div class="card">
+                <h3>📍 Geofencing</h3>
+                <p>FusedLocation + CLLocationManager, Always permission</p>
+            </div>
+            <div class="card">
+                <h3>🗄️ SQLite</h3>
+                <p>Offline POI/audio/maps pack</p>
+            </div>
+            <div class="card">
+                <h3>☁️ SQL Server</h3>
+                <p>Online sync + CMS backend</p>
+            </div>
+            <div class="card">
+                <h3>🗺️ Mapbox</h3>
+                <p>Offline tiles + POI markers</p>
+            </div>
+            <div class="card">
+                <h3>🎤 Azure TTS</h3>
+                <p>Neural voices VN/EN/CN/JP/KR</p>
+            </div>
+        </div>
+
+        <h3>Database Schema</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Table</th>
+                        <th>Purpose</th>
+                        <th>Key Fields</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>POIs</td>
+                        <td>Quán ăn locations</td>
+                        <td>lat, lng, radius, name_vi, desc_vi</td>
+                    </tr>
+                    <tr>
+                        <td>Translations</td>
+                        <td>Multi-lang content</td>
+                        <td>poi_id, lang, name, desc, audio_url</td>
+                    </tr>
+                    <tr>
+                        <td>Analytics</td>
+                        <td>Usage tracking</td>
+                        <td>poi_id, user_route, dwell_time, anon_id</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="ch08">
+        <div class="section-header">
+            <div class="icon" style="background:#FFF8E1;color:var(--warning);">👨‍💼</div>
+            <div>
+                <div class="section-num">Chapter 08</div>
+                <h2>CMS & Analytics</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>Web Dashboard</h3>
+                <ul>
+                    <li>CRUD POI (location, radius, description)</li>
+                    <li>Upload audio files per language</li>
+                    <li>Route builder (POI sequence)</li>
+                    <li>User approval workflow</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Analytics Features</h3>
+                <ul>
+                    <li>Real-time heatmap footfall</li>
+                    <li>Dwell time per POI</li>
+                    <li>Route patterns (anon tracking)</li>
+                    <li>Peak hours analysis</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch09">
+        <div class="section-header">
+            <div class="icon" style="background:#E0F2F1;color:var(--accent);">🔄</div>
+            <div>
+                <div class="section-num">Chapter 09</div>
+                <h2>Luồng Người Dùng</h2>
+            </div>
+        </div>
+
+        <div class="flow">
+            <span class="flow-step">Install → Download Pack (WiFi)</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step alt">Select Language</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Map View + GPS Start</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step success">Enter Geofence → Auto TTS</span>
+        </div>
+
+        <div class="highlight success">
+            <strong>Graceful Fallback:</strong> No GPS → QR scan. No audio → text popup. Offline → cached content. Low battery → GPS throttle 30s.
+        </div>
+    </section>
+
+    <section id="ch10">
+        <div class="section-header">
+            <div class="icon" style="background:#F3E5F5;color:#7B1FA2;">🎨</div>
+            <div>
+                <div class="section-num">Chapter 10</div>
+                <h2>UI/UX Design</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>App Screens</h3>
+                <ul>
+                    <li><strong>Map:</strong> POI markers, user location, route line</li>
+                    <li><strong>TTS Player:</strong> Auto popup w/ progress, pause/skip</li>
+                    <li><strong>Download:</strong> Pack progress, language selector</li>
+                    <li><strong>Settings:</strong> Voice speed, GPS mode, lang</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Web CMS</h3>
+                <ul>
+                    <li>Responsive dashboard</li>
+                    <li>Map editor (drag POI)</li>
+                    <li>Audio upload + preview</li>
+                    <li>Heatmap analytics</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>UX Principles</h3>
+                <ul>
+                    <li>Zero-tap activation (pure geofence)</li>
+                    <li>Mute by volume button</li>
+                    <li>Battery optimization</li>
+                    <li>Accessibility (large text, voiceover)</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section id="ch11">
+        <div class="section-header">
+            <div class="icon" style="background:#E8F5E9;color:var(--success);">📖</div>
+            <div>
+                <div class="section-num">Chapter 11</div>
+                <h2>User Stories</h2>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>User Story</th>
+                        <th>Acceptance Criteria</th>
+                    </tr>
+                </thead>
+                <tr>
+                        <td>US-001</td>
+                        <td>Du khách muốn thuyết minh tự động khi vào vùng quán ăn</td>
+                        <td>Geofence trigger <3s, 4-tier audio fallback</td>
+                    </tr>
+                    <tr>
+                        <td>US-002</td>
+                        <td>Tourist wants automatic narration when entering restaurant zone (EN)</td>
+                        <td>Geofence trigger <3s, 4-tier audio fallback</td>
+                    </tr>
+                    <tr>
+                        <td>US-003</td>
+                        <td>Chủ quán muốn xem heatmap lượng khách vào quán</td>
+                        <td>Bản đồ real-time, thời gian lưu trú, giờ cao điểm</td>
+                    </tr>
+                    <tr>
+                        <td>US-004</td>
+                        <td>Restaurant owner wants heatmap of customer visits (EN)</td>
+                        <td>Real-time map, dwell time, peak hours</td>
+                    </tr>
+                    <tr>
+                        <td>US-005</td>
+                        <td>游客希望进入餐厅区域时自动语音导览 (CN)</td>
+                        <td>地理围栏触发<3秒, 4级音频后备</td>
+                    </tr>
+                    <tr>
+                        <td>US-006</td>
+                        <td>Admin wants to approve new POI from shop owners</td>
+                        <td>Approval/rejection workflow, audit trail</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+   
+
+
+    <section id="ch12">
+        <div class="section-header">
+            <div class="icon" style="background:#FFF3E0;color:var(--primary);">🗺️</div>
+            <div>
+                <div class="section-num">Chapter 12</div>
+                <h2>Admin Dashboard Details</h2>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3>🔐 Admin Panel</h3>
+                <ul>
+                    <li>Super admin (2 users): Full CRUD, analytics export, pack approval</li>
+                    <li>Role-based access (shop owner → POI edit only)</li>
+                    <li>Activity log + approval workflow</li>
+                    <li>User analytics (tourists count/device/OS)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📊 Advanced Analytics</h3>
+                <ul>
+                    <li>Real-time heatmap (last 24h)</li>
+                    <li>Peak hours/dwell time per POI</li>
+                    <li>Tourist routes (anon heat trails)</li>
+                    <li>Audio tier usage stats</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>⚙️ Pack Management</h3>
+                <ul>
+                    <li>Generate new map pack vN.N</li>
+                    <li>Audio upload/convert batch</li>
+                    <li>POI import CSV/Excel</li>
+                    <li>Delta update push (~5MB)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="highlight info">
+            <strong>Security: JWT auth + Azure AD. All analytics anon (device UUID). Admin approval required for all shop POI changes.
+        </strong>
+        </div>
+    </section>
+
+    <section id="ch13">
+        <div class="section-header">
+            <div class="icon" style="background:#E0F2F1;color:var(--accent);">🔄</div>
+            <div>
+                <div class="section-num">Chapter 13</div>
+                <h2>End-to-End Flow — Từ Mở App đến Nghe Audio</h2>
+            </div>
+        </div>
+
+        <div class="highlight success">
+            <strong>Luồng hoàn chỉnh cho Du khách (Happy Path):</strong>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <h4>1. Mở App lần đầu</h4>
+                <p>Chào mừng → Permissions (GPS + Storage) → Download Pack 50MB (POI + Audio + Maps). Tiến trình progress bar. Hoàn tất → Chọn ngôn ngữ mặc định (VN/EN detect).</p>
+            </div>
+            <div class="timeline-item">
+                <h4>2. Khởi động GPS Service</h4>
+                <p>Background service start. Map view hiện Phố Vĩnh Khánh + 50+ POI markers. User location blue dot. Auto-fit bounds.</p>
+            </div>
+            <div class="timeline-item">
+                <h4>3. Di chuyển đến POI #1 (30m radius)</h4>
+                <p>GPS update mỗi 5s → Haversine distance <30m → Enter geofence detected → Debounce timer 3s (avoid false trigger).</p>
+            </div>
+            <div class="timeline-item">
+                <h4>4. Audio Trigger (4-Tier Fallback)</h4>
+                <p>Tier1: Pre-gen MP3 từ SQLite (0ms) → TTS Player popup (title + progress + pause/skip) → Auto-play sau 1s. Volume system default.</p>
+            </div>
+            <div class="timeline-item">
+                <h4>5. Di chuyển POI tiếp theo</h4>
+                <p>Exit geofence → Cooldown 5min → Next POI trigger. Route line nối các POI đã visit. Heatmap update (online).</p>
+            </div>
+            <div class="timeline-item">
+                <h4>6. Kết thúc Tour</h4>
+                <p>Summary screen: POI visited, total distance, time spent. Share route. Background sync analytics.</p>
+            </div>
+        </div>
+
+        <div class="flow">
+            <span class="flow-step">App Open</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step alt">Download Pack</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GPS + Map</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step warning">Geofence Enter (30m)</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step success">TTS Auto Play → Next POI</span>
+        </div>
+
+        <div class="highlight info">
+            <strong>Error Handling:</strong> No GPS → QR scan POI. No audio → Text popup + Native TTS. Low battery → GPS throttle 30s. Offline → Cached content only.
+        </div>
+
+        <div class="highlight">
+            <img src="C:\Users\nltph\Downloads\sequence.png" alt="End-to-End Flow Diagram" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); display: block; margin: 1rem auto;">
+            <small style="color: var(--text-secondary); text-align: center; display: block;"></small>
+        </div>
+    </section>
+
+
+    <footer>
+        <p><strong>Food Street Guide - Vĩnh Khánh PRD v1.0</strong></p>
+        <p>.NET MAUI + Geofencing + Multi-language TTS + Offline-first</p>
+        <p>Phố Ẩm Thực Vĩnh Khánh, Quận 4, TP.HCM | Generated 2026</p>
+    </footer>
+
+
+</body>
+</html>
