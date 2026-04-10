@@ -21,9 +21,14 @@
               RowDefinitions="Auto, *" BackgroundColor="#1A1A1A">
 
             <Border Grid.Row="0" BackgroundColor="#252525" Padding="15" StrokeThickness="0">
-                <Grid ColumnDefinitions="Auto, *">
+                <Grid ColumnDefinitions="Auto, *, Auto">
                     <Label Grid.Column="0" Text="📍" FontSize="20" VerticalOptions="Center"/>
-                    <Label Grid.Column="1" Text="Điểm thuyết minh" TextColor="White" FontAttributes="Bold" FontSize="18" Margin="10,0,0,0" VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="Điểm thuyết minh" TextColor="White" FontAttributes="Bold" FontSize="16" Margin="10,0,0,0" VerticalOptions="Center"/>
+
+                    <Button x:Name="LangSelectBtn" Grid.Column="2" Text="🌐 VI ▼" 
+                            BackgroundColor="#2A2A2A" TextColor="#FF7A00" FontAttributes="Bold" 
+                            CornerRadius="12" HeightRequest="40" Padding="15,0" 
+                            Clicked="OnLanguageDropdownClicked" VerticalOptions="Center" />
                 </Grid>
             </Border>
 
@@ -56,16 +61,12 @@
                 <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" StrokeShape="RoundRectangle 15" HeightRequest="80" VerticalOptions="Start">
                     <Image x:Name="DetailImage" Aspect="AspectFill"/>
                 </Border>
-
                 <VerticalStackLayout Grid.Row="0" Grid.Column="1" Margin="15,0,0,0">
                     <Label x:Name="DetailTitle" TextColor="White" FontAttributes="Bold" FontSize="16" MaxLines="2"/>
                     <Label x:Name="DetailDistance" TextColor="#FF7A00" FontSize="13" FontAttributes="Bold" Margin="0,5,0,0"/>
                 </VerticalStackLayout>
-
                 <Button Grid.Row="0" Grid.Column="2" Text="❌" BackgroundColor="#333" TextColor="White" CornerRadius="15" WidthRequest="30" HeightRequest="30" Padding="0" Clicked="OnCloseDetailClicked" VerticalOptions="Start"/>
-
                 <Label x:Name="DetailDescription" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" TextColor="#CCC" FontSize="12" Margin="15,10,0,0" LineBreakMode="WordWrap"/>
-
                 <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Spacing="10" HorizontalOptions="End" Margin="0,15,0,0">
                     <Button Text="🔊 Nghe" BackgroundColor="#FF7A00" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnListenClicked"/>
                     <Button Text="➡️ Chỉ đường" BackgroundColor="#2196F3" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnRouteClicked"/>

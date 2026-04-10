@@ -6,6 +6,7 @@ using Mapsui.Projections;
 using System.Diagnostics;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Devices.Sensors;
+using System.Linq;
 
 namespace CulinaryApp
 {
@@ -16,15 +17,14 @@ namespace CulinaryApp
         private PoiModel _selectedPoi;
         private Microsoft.Maui.Devices.Sensors.Location _myCurrentLocation;
 
-        // ================= BIẾN QUẢN LÝ GEOFENCE & AUDIO =================
         private IDispatcherTimer _gpsTimer;
         private IDispatcherTimer _heartbeatTimer;
         private Dictionary<string, DateTime> _cooldownTracker = new();
         private string _pendingPoiId = null;
         private DateTime _stayStartTime;
-
-        // [QUAN TRỌNG] Biến dùng để ngắt âm thanh đang phát dở
         private CancellationTokenSource _speechTokenSource;
+
+        private string _currentLang = "vi";
 
         public MainPage()
         {
@@ -53,7 +53,7 @@ namespace CulinaryApp
 
         private async Task InitializeDataAndStartTracking()
         {
-            var pois = await _apiService.GetAllPoisAsync();
+            var pois = await _apiService.GetAllPoisAsync(_currentLang);
             if (pois != null && pois.Count > 0)
             {
                 _allPois = pois;
@@ -82,11 +82,89 @@ namespace CulinaryApp
             StartRealtimeTracking();
         }
 
-        // ================= GIAI ĐOẠN 1: GPS COLLECTION =================
+        // ================= XỬ LÝ MENU DROPDOWN CHỌN NGÔN NGỮ =================
+        private async void OnLanguageDropdownClicked(object sender, EventArgs e)
+        {
+            // Hiển thị Menu trượt từ dưới lên (Action Sheet)
+            string action = await DisplayActionSheet("Chọn ngôn ngữ thuyết minh", "Hủy", null,
+                "🇻🇳 Tiếng Việt (VI)",
+                "🇬🇧 English (EN)",
+                "🇯🇵 日本語 (JA)",
+                "🇨🇳 中文 (ZH)",
+                "🇰🇷 한국어 (KO)");
+
+            if (action == "Hủy" || string.IsNullOrEmpty(action)) return;
+
+            // Xác định mã ngôn ngữ dựa trên lựa chọn
+            string newLang = _currentLang;
+            if (action.Contains("(VI)")) newLang = "vi";
+            else if (action.Contains("(EN)")) newLang = "en";
+            else if (action.Contains("(JA)")) newLang = "ja";
+            else if (action.Contains("(ZH)")) newLang = "zh";
+            else if (action.Contains("(KO)")) newLang = "ko";
+
+            // Nếu người dùng chọn ngôn ngữ mới thì cập nhật
+            if (_currentLang != newLang)
+            {
+                _currentLang = newLang;
+
+                // Cập nhật text trên nút bấm
+                LangSelectBtn.Text = $"🌐 {_currentLang.ToUpper()} ▼";
+
+                DetailPanel.IsVisible = false;
+                await RefreshDataWithLanguageAsync();
+            }
+        }
+
+        private async Task RefreshDataWithLanguageAsync()
+        {
+            var pois = await _apiService.GetAllPoisAsync(_currentLang);
+            if (pois != null && pois.Count > 0)
+            {
+                _allPois = pois;
+
+                MainThread.BeginInvokeOnMainThread(() => {
+                    var oldPins = MainMap.Pins.Where(p => p.Label != "Bạn đang ở đây").ToList();
+                    foreach (var pin in oldPins) MainMap.Pins.Remove(pin);
+
+                    foreach (var poi in _allPois)
+                    {
+                        if (poi.Location?.Coordinates != null)
+                        {
+                            var pin = new Mapsui.UI.Maui.Pin()
+                            {
+                                Label = poi.Title,
+                                Position = new Mapsui.UI.Maui.Position(poi.Location.Coordinates[1], poi.Location.Coordinates[0]),
+                                Type = Mapsui.UI.Maui.PinType.Pin,
+                                Color = Microsoft.Maui.Graphics.Colors.DarkOrange,
+                                Scale = 0.8f
+                            };
+                            MainMap.Pins.Add(pin);
+                        }
+                    }
+
+                    if (_myCurrentLocation != null)
+                    {
+                        foreach (var poi in _allPois)
+                        {
+                            var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(poi.Location.Coordinates[1], poi.Location.Coordinates[0]);
+                            double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
+                            poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
+                        }
+                        _allPois = _allPois.OrderBy(p => p.DistanceText).ToList();
+                    }
+
+                    PoiCollectionView.ItemsSource = null;
+                    PoiCollectionView.ItemsSource = _allPois;
+                });
+            }
+        }
+
+        // ================= XỬ LÝ GPS =================
         private void StartRealtimeTracking()
         {
             _gpsTimer = Dispatcher.CreateTimer();
-            _gpsTimer.Interval = TimeSpan.FromSeconds(5);
+            _gpsTimer.Interval = TimeSpan.FromSeconds(10); // Đã giảm xuống 10s
             _gpsTimer.Tick += async (s, e) => await FetchGpsAndUpdateMap();
             _gpsTimer.Start();
 
@@ -149,7 +227,7 @@ namespace CulinaryApp
             }
         }
 
-        // ================= GIAI ĐOẠN 2 & 3: ZONE DETECTION & AUDIO DECISION =================
+        // ================= ZONE DETECTION & AUDIO TTS =================
         private void CheckGeofencesAndAudio()
         {
             if (_myCurrentLocation == null || _allPois == null || _allPois.Count == 0) return;
@@ -179,82 +257,70 @@ namespace CulinaryApp
                     }
                     else if ((DateTime.Now - _stayStartTime).TotalSeconds >= 3)
                     {
-                        Debug.WriteLine($"[Audio] Kích hoạt thuyết minh cho: {poi.Title}");
-
-                        // [QUAN TRỌNG] Cập nhật thời gian hồi chiêu NGAY LẬP TỨC để tránh nhịp quét sau đè lên
                         _cooldownTracker[poiId] = DateTime.Now;
                         _pendingPoiId = null;
-
                         TriggerAutoNarration(poi);
                     }
-
                     break;
                 }
             }
 
             if (!isInsideAnyZone && _pendingPoiId != null)
             {
-                Debug.WriteLine($"[Geofence] Đã rời khỏi vùng trước 3s. Hủy đọc.");
                 _pendingPoiId = null;
             }
         }
 
         private async void TriggerAutoNarration(PoiModel poi)
         {
-            // [QUAN TRỌNG] Hủy lệnh đọc cũ trước khi đọc lệnh mới
             _speechTokenSource?.Cancel();
             _speechTokenSource = new CancellationTokenSource();
             var token = _speechTokenSource.Token;
 
             var locales = await TextToSpeech.Default.GetLocalesAsync();
-            var vietnameseLocale = locales.FirstOrDefault(l => l.Language.Contains("vi"));
+            var targetLocale = locales.FirstOrDefault(l => l.Language.ToLower().Contains(_currentLang.ToLower()));
+
+            if (targetLocale == null)
+            {
+                MainThread.BeginInvokeOnMainThread(() => {
+                    DisplayAlert("Thiếu gói Giọng Đọc",
+                        $"Điện thoại chưa cài đặt bộ đọc cho ngôn ngữ '{_currentLang.ToUpper()}'. Vui lòng tải gói ngôn ngữ này trong phần Cài Đặt của điện thoại.",
+                        "Đã hiểu");
+                });
+                return;
+            }
 
             MainThread.BeginInvokeOnMainThread(() => {
-                DisplayAlert("Thông báo tự động", $"Bạn đang ở gần {poi.Title}. Đang phát thuyết minh...", "OK");
+                DisplayAlert("Thông báo tự động", $"Đang phát thuyết minh...", "OK");
             });
 
             try
             {
-                // Thêm cancelToken vào lệnh đọc
-                await TextToSpeech.Default.SpeakAsync($"Chào mừng bạn đến với {poi.Title}. {poi.Description}", new SpeechOptions
+                await TextToSpeech.Default.SpeakAsync($"{poi.Title}. {poi.Description}", new SpeechOptions
                 {
                     Volume = 1.0f,
-                    Locale = vietnameseLocale
+                    Locale = targetLocale
                 }, cancelToken: token);
             }
-            catch (OperationCanceledException)
-            {
-                Debug.WriteLine("Đã hủy lệnh đọc cũ để tránh phát lặp.");
-            }
+            catch (OperationCanceledException) { }
         }
 
-        // ================= XỬ LÝ UI: CHỌN ĐỊA ĐIỂM, ĐÓNG BẢNG & NÚT BẤM =================
+        // ================= XỬ LÝ SỰ KIỆN UI CHUNG =================
         private void OnPoiSelected(object sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.FirstOrDefault() is PoiModel poi)
             {
                 _selectedPoi = poi;
-
                 DetailTitle.Text = poi.Title;
                 DetailDescription.Text = poi.Description;
                 DetailDistance.Text = poi.DistanceText;
-
                 if (!string.IsNullOrEmpty(poi.CoverImageUrl)) DetailImage.Source = poi.CoverImageUrl;
 
                 foreach (var pin in MainMap.Pins)
                 {
                     if (pin.Label == "Bạn đang ở đây") continue;
-
-                    if (pin.Label == poi.Title)
-                    {
-                        pin.Color = Microsoft.Maui.Graphics.Colors.Red;
-                        pin.Scale = 1.2f;
-                    }
-                    else
-                    {
-                        pin.Color = Microsoft.Maui.Graphics.Colors.DarkOrange;
-                        pin.Scale = 0.8f;
-                    }
+                    pin.Color = (pin.Label == poi.Title) ? Microsoft.Maui.Graphics.Colors.Red : Microsoft.Maui.Graphics.Colors.DarkOrange;
+                    pin.Scale = (pin.Label == poi.Title) ? 1.2f : 0.8f;
                 }
 
                 DetailPanel.IsVisible = true;
@@ -278,7 +344,7 @@ namespace CulinaryApp
             if (_myCurrentLocation != null) MoveMapToLocation(_myCurrentLocation.Latitude, _myCurrentLocation.Longitude, 3);
         }
 
-        private async void OnListenClicked(object sender, EventArgs e)
+        private void OnListenClicked(object sender, EventArgs e)
         {
             if (_selectedPoi != null) TriggerAutoNarration(_selectedPoi);
         }
@@ -307,7 +373,7 @@ namespace CulinaryApp
         private void OnFindMyLocationClicked(object sender, EventArgs e)
         {
             if (_myCurrentLocation != null) MoveMapToLocation(_myCurrentLocation.Latitude, _myCurrentLocation.Longitude, 1);
-            else DisplayAlert("Thông báo", "Đang lấy vị trí GPS, vui lòng đợi...", "OK");
+            else DisplayAlert("Thông báo", "Đang lấy vị trí GPS...", "OK");
         }
 
         private void MoveMapToLocation(double lat, double lon, double zoomLevel)
