@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using SkiaSharp.Views.Maui.Controls.Hosting; 
-
+using SkiaSharp.Views.Maui.Controls.Hosting;
+using ZXing.Net.Maui.Controls;
 namespace CulinaryApp
 {
     public static class MauiProgram
@@ -10,6 +10,7 @@ namespace CulinaryApp
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseBarcodeReader()
                 .UseSkiaSharp() 
                 .ConfigureFonts(fonts =>
                 {

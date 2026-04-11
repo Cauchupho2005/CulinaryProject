@@ -43,6 +43,9 @@ namespace CulinaryApp
                 }
                 catch (Exception ex) { Debug.WriteLine(ex.Message); }
             };
+
+            // [MỚI THÊM] Bắt sự kiện khi người dùng nhấn vào bất kỳ Ghim nào trên bản đồ
+            MainMap.PinClicked += OnMapPinClicked;
         }
 
         protected override async void OnAppearing()
@@ -85,7 +88,6 @@ namespace CulinaryApp
         // ================= XỬ LÝ MENU DROPDOWN CHỌN NGÔN NGỮ =================
         private async void OnLanguageDropdownClicked(object sender, EventArgs e)
         {
-            // Hiển thị Menu trượt từ dưới lên (Action Sheet)
             string action = await DisplayActionSheet("Chọn ngôn ngữ thuyết minh", "Hủy", null,
                 "🇻🇳 Tiếng Việt (VI)",
                 "🇬🇧 English (EN)",
@@ -95,7 +97,6 @@ namespace CulinaryApp
 
             if (action == "Hủy" || string.IsNullOrEmpty(action)) return;
 
-            // Xác định mã ngôn ngữ dựa trên lựa chọn
             string newLang = _currentLang;
             if (action.Contains("(VI)")) newLang = "vi";
             else if (action.Contains("(EN)")) newLang = "en";
@@ -103,14 +104,10 @@ namespace CulinaryApp
             else if (action.Contains("(ZH)")) newLang = "zh";
             else if (action.Contains("(KO)")) newLang = "ko";
 
-            // Nếu người dùng chọn ngôn ngữ mới thì cập nhật
             if (_currentLang != newLang)
             {
                 _currentLang = newLang;
-
-                // Cập nhật text trên nút bấm
                 LangSelectBtn.Text = $"🌐 {_currentLang.ToUpper()} ▼";
-
                 DetailPanel.IsVisible = false;
                 await RefreshDataWithLanguageAsync();
             }
@@ -164,7 +161,7 @@ namespace CulinaryApp
         private void StartRealtimeTracking()
         {
             _gpsTimer = Dispatcher.CreateTimer();
-            _gpsTimer.Interval = TimeSpan.FromSeconds(10); // Đã giảm xuống 10s
+            _gpsTimer.Interval = TimeSpan.FromSeconds(10);
             _gpsTimer.Tick += async (s, e) => await FetchGpsAndUpdateMap();
             _gpsTimer.Start();
 
@@ -305,28 +302,94 @@ namespace CulinaryApp
             catch (OperationCanceledException) { }
         }
 
+        // ================= XỬ LÝ SỰ KIỆN QUÉT QR =================
+        private async void OnScanQRClicked(object sender, EventArgs e)
+        {
+            var scanPage = new ScanPage();
+            scanPage.OnQrCodeDetected += (qrValue) => {
+                ProcessQrResult(qrValue);
+            };
+            await Navigation.PushAsync(scanPage);
+        }
+
+        private void ProcessQrResult(string qrValue)
+        {
+            var matchedPoi = _allPois.FirstOrDefault(p =>
+                p.Title.Equals(qrValue, StringComparison.OrdinalIgnoreCase) ||
+                p.Id == qrValue);
+
+            if (matchedPoi != null)
+            {
+                // [ĐÃ SỬA LỖI CS1729]: Gọi trực tiếp hàm dùng chung thay vì giả lập sự kiện
+                OpenPoiDetail(matchedPoi);
+                TriggerAutoNarration(matchedPoi);
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(async () => {
+                    await DisplayAlert("Thông báo", "Không tìm thấy thông tin cho mã QR này.", "OK");
+                });
+            }
+        }
+
         // ================= XỬ LÝ SỰ KIỆN UI CHUNG =================
+
+        // [MỚI] Bắt sự kiện người dùng Click thẳng vào cái Ghim trên bản đồ
+        private void OnMapPinClicked(object sender, PinClickedEventArgs e)
+        {
+            // Bỏ qua nếu bấm nhầm vào chỗ trống hoặc ghim GPS của người dùng
+            if (e.Pin == null || e.Pin.Label == "Bạn đang ở đây") return;
+
+            // Lấy Tên quán ăn từ Label của Ghim để tìm trong danh sách Data
+            var clickedPoi = _allPois.FirstOrDefault(p => p.Title == e.Pin.Label);
+            if (clickedPoi != null)
+            {
+                // Gọi hàm dùng chung để hiển thị chi tiết và đổi màu
+                OpenPoiDetail(clickedPoi);
+
+                // Đồng bộ hóa: Tự động highlight món đó trong danh sách CollectionView bên dưới
+                PoiCollectionView.SelectedItem = clickedPoi;
+            }
+
+            // Chặn cái popup mặc định của bản đồ Mapsui hiện lên (vì mình đã làm Bảng chi tiết UI xịn hơn rồi)
+            e.Handled = true;
+        }
+
+        // Khi người dùng bấm vào danh sách bên dưới
         private void OnPoiSelected(object sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.FirstOrDefault() is PoiModel poi)
             {
-                _selectedPoi = poi;
-                DetailTitle.Text = poi.Title;
-                DetailDescription.Text = poi.Description;
-                DetailDistance.Text = poi.DistanceText;
-                if (!string.IsNullOrEmpty(poi.CoverImageUrl)) DetailImage.Source = poi.CoverImageUrl;
-
-                foreach (var pin in MainMap.Pins)
-                {
-                    if (pin.Label == "Bạn đang ở đây") continue;
-                    pin.Color = (pin.Label == poi.Title) ? Microsoft.Maui.Graphics.Colors.Red : Microsoft.Maui.Graphics.Colors.DarkOrange;
-                    pin.Scale = (pin.Label == poi.Title) ? 1.2f : 0.8f;
-                }
-
-                DetailPanel.IsVisible = true;
-                if (poi.Location?.Coordinates != null)
-                    MoveMapToLocation(poi.Location.Coordinates[1], poi.Location.Coordinates[0], 1);
+                // [ĐÃ SỬA]: Rút gọn lại, chỉ cần gọi hàm dùng chung
+                OpenPoiDetail(poi);
             }
+        }
+
+        // HÀM DÙNG CHUNG: Hiển thị bảng chi tiết, đổi màu ghim, zoom bản đồ
+        private void OpenPoiDetail(PoiModel poi)
+        {
+            _selectedPoi = poi;
+            DetailTitle.Text = poi.Title;
+            DetailDescription.Text = poi.Description;
+            DetailDistance.Text = poi.DistanceText;
+
+            if (!string.IsNullOrEmpty(poi.CoverImageUrl))
+                DetailImage.Source = poi.CoverImageUrl;
+
+            // Đổi màu ghim trên bản đồ (Quán được chọn màu Đỏ to lên, quán khác màu Cam nhỏ lại)
+            foreach (var pin in MainMap.Pins)
+            {
+                if (pin.Label == "Bạn đang ở đây") continue;
+                pin.Color = (pin.Label == poi.Title) ? Microsoft.Maui.Graphics.Colors.Red : Microsoft.Maui.Graphics.Colors.DarkOrange;
+                pin.Scale = (pin.Label == poi.Title) ? 1.2f : 0.8f;
+            }
+
+            // Hiện bảng UI
+            DetailPanel.IsVisible = true;
+
+            // Zoom nhẹ bản đồ tới vị trí đó
+            if (poi.Location?.Coordinates != null)
+                MoveMapToLocation(poi.Location.Coordinates[1], poi.Location.Coordinates[0], 1);
         }
 
         private void OnCloseDetailClicked(object sender, EventArgs e)
@@ -334,6 +397,7 @@ namespace CulinaryApp
             DetailPanel.IsVisible = false;
             PoiCollectionView.SelectedItem = null;
 
+            // Khôi phục lại màu ghim gốc
             foreach (var pin in MainMap.Pins)
             {
                 if (pin.Label == "Bạn đang ở đây") continue;
@@ -384,5 +448,28 @@ namespace CulinaryApp
                 MainMap.Map?.Navigator?.ZoomTo(zoomLevel);
             });
         }
+
+        // ================= XỬ LÝ TẠO MÃ QR TẠI CHỖ =================
+        private void OnGenerateQRClicked(object sender, EventArgs e)
+        {
+            if (_selectedPoi != null)
+            {
+                // Ưu tiên dùng Id (nếu kết nối DB), nếu không có DB thì dùng Title làm mã định danh
+                string qrContent = !string.IsNullOrEmpty(_selectedPoi.Id) ? _selectedPoi.Id : _selectedPoi.Title;
+
+                // Nạp nội dung vào bộ sinh mã QR
+                QrCodeGenerator.Value = qrContent;
+
+                // Hiển thị khung Popup lên
+                QrPopupPanel.IsVisible = true;
+            }
+        }
+
+        private void OnCloseQRPopupClicked(object sender, EventArgs e)
+        {
+            // Ẩn khung Popup đi
+            QrPopupPanel.IsVisible = false;
+        }
+
     }
 }

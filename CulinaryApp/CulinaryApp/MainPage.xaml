@@ -2,17 +2,24 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:maps="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
              x:Class="CulinaryApp.MainPage"
              BackgroundColor="#121212">
 
     <Grid>
         <maps:MapView x:Name="MainMap" VerticalOptions="Fill" HorizontalOptions="Fill" />
 
-        <Button Text="🎯" BackgroundColor="White" TextColor="Black" FontSize="20"
-                CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="0"
-                HorizontalOptions="End" VerticalOptions="Start" Margin="20,50,20,20"
-                Shadow="{Shadow Brush=Black, Offset='0,3', Opacity=0.3}"
-                Clicked="OnFindMyLocationClicked"/>
+        <HorizontalStackLayout HorizontalOptions="End" VerticalOptions="Start" Margin="0,50,20,0" Spacing="15">
+            <Button Text="📷" BackgroundColor="#FF7A00" TextColor="White" FontSize="20"
+                    CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="0"
+                    Shadow="{Shadow Brush=Black, Offset='0,3', Opacity=0.3}"
+                    Clicked="OnScanQRClicked"/>
+
+            <Button Text="🎯" BackgroundColor="#FF7A00" TextColor="Black" FontSize="20"
+                    CornerRadius="25" WidthRequest="50" HeightRequest="50" Padding="0"
+                    Shadow="{Shadow Brush=Black, Offset='0,3', Opacity=0.3}"
+                    Clicked="OnFindMyLocationClicked"/>
+        </HorizontalStackLayout>
 
         <Grid HorizontalOptions="{OnIdiom Desktop='Start', Phone='Fill'}"
               VerticalOptions="{OnIdiom Desktop='Fill', Phone='End'}"
@@ -53,25 +60,81 @@
         </Grid>
 
         <Border x:Name="DetailPanel" BackgroundColor="#1A1A1A" IsVisible="False"
-                VerticalOptions="Center" HorizontalOptions="Center" 
-                WidthRequest="{OnIdiom Desktop='450', Phone='350'}" HeightRequest="300"
-                Margin="20" Padding="25" StrokeShape="RoundRectangle 25" StrokeThickness="0"
-                Shadow="{Shadow Brush=Black, Offset='0,10', Opacity=0.6}">
+                VerticalOptions="End" HorizontalOptions="Fill" 
+                WidthRequest="{OnIdiom Desktop='450', Phone='-1'}" HeightRequest="260"
+                Margin="15,0,15,40" Padding="20" StrokeShape="RoundRectangle 25" StrokeThickness="0"
+                Shadow="{Shadow Brush=Black, Offset='0,-5', Opacity=0.4}">
+
             <Grid RowDefinitions="Auto, *, Auto" ColumnDefinitions="80, *, Auto">
                 <Border Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" StrokeShape="RoundRectangle 15" HeightRequest="80" VerticalOptions="Start">
                     <Image x:Name="DetailImage" Aspect="AspectFill"/>
                 </Border>
+
                 <VerticalStackLayout Grid.Row="0" Grid.Column="1" Margin="15,0,0,0">
                     <Label x:Name="DetailTitle" TextColor="White" FontAttributes="Bold" FontSize="16" MaxLines="2"/>
                     <Label x:Name="DetailDistance" TextColor="#FF7A00" FontSize="13" FontAttributes="Bold" Margin="0,5,0,0"/>
                 </VerticalStackLayout>
+
                 <Button Grid.Row="0" Grid.Column="2" Text="❌" BackgroundColor="#333" TextColor="White" CornerRadius="15" WidthRequest="30" HeightRequest="30" Padding="0" Clicked="OnCloseDetailClicked" VerticalOptions="Start"/>
+
                 <Label x:Name="DetailDescription" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" TextColor="#CCC" FontSize="12" Margin="15,10,0,0" LineBreakMode="WordWrap"/>
+
                 <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Spacing="10" HorizontalOptions="End" Margin="0,15,0,0">
                     <Button Text="🔊 Nghe" BackgroundColor="#FF7A00" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnListenClicked"/>
                     <Button Text="➡️ Chỉ đường" BackgroundColor="#2196F3" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnRouteClicked"/>
+                    <Button Text="🔲 QR" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="10" FontAttributes="Bold" Padding="15,10" Clicked="OnGenerateQRClicked"/>
                 </HorizontalStackLayout>
             </Grid>
         </Border>
+
+        <Border x:Name="QrPopupPanel" BackgroundColor="#AA000000" IsVisible="False" StrokeThickness="0">
+            <Border BackgroundColor="#252525" 
+                    StrokeShape="RoundRectangle 25"
+                    VerticalOptions="Center" 
+                    HorizontalOptions="Center"
+                    WidthRequest="320" 
+                    HeightRequest="420" 
+                    Padding="20" 
+                    StrokeThickness="0"
+                    Shadow="{Shadow Brush=Black, Offset='0,10', Opacity=0.5}">
+
+                <VerticalStackLayout Spacing="20" VerticalOptions="Center">
+                    <Label Text="Quét mã thuyết minh" 
+                           TextColor="White" 
+                           FontSize="18" 
+                           FontAttributes="Bold" 
+                           HorizontalOptions="Center"/>
+
+                    <Border BackgroundColor="White" 
+                            Padding="15" 
+                            StrokeShape="RoundRectangle 15" 
+                            HorizontalOptions="Center"
+                            WidthRequest="230" 
+                            HeightRequest="230">
+                        <zxing:BarcodeGeneratorView x:Name="QrCodeGenerator" 
+                                                    Format="QrCode" 
+                                                    WidthRequest="200" 
+                                                    HeightRequest="200" />
+                    </Border>
+
+                    <Label Text="Dùng điện thoại khác quét mã này" 
+                           TextColor="#AAA" 
+                           FontSize="13" 
+                           HorizontalOptions="Center" />
+
+                    <Button Text="Đóng" 
+                            BackgroundColor="#FF7A00" 
+                            TextColor="White" 
+                            FontAttributes="Bold"
+                            WidthRequest="150" 
+                            HeightRequest="45"
+                            CornerRadius="22" 
+                            Clicked="OnCloseQRPopupClicked" 
+                            HorizontalOptions="Center"
+                            Margin="0,10,0,0"/>
+                </VerticalStackLayout>
+            </Border>
+        </Border>
+
     </Grid>
 </ContentPage>
