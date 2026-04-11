@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using CulinaryApp.Models;
-using MonkeyCache.FileStore; // Thêm cái này
-using Microsoft.Maui.Networking; // Để kiểm tra mạng
+using Microsoft.Maui.Networking; 
+using Microsoft.Maui.Storage; 
 
 namespace CulinaryApp.Services
 {
@@ -13,22 +13,21 @@ namespace CulinaryApp.Services
         public ApiService()
         {
             _httpClient = new HttpClient();
-            // Khởi tạo nơi lưu trữ offline (đặt tên app của bạn)
-            Barrel.ApplicationId = "culinary_app_cache";
+           
         }
 
         public async Task<List<PoiModel>> GetAllPoisAsync(string lang = "vi")
         {
             string url = $"{BaseUrl}?lang={lang}";
-            string cacheKey = $"pois_{lang}"; // Mỗi ngôn ngữ một bản cache riêng
+            string cacheKey = $"pois_{lang}"; 
 
-            // 1. KIỂM TRA MẠNG: Nếu KHÔNG có mạng, lấy ngay data trong máy
+            // 1. KIỂM TRA MẠNG: Lấy data từ máy nếu mất mạng
             if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
             {
-                return Barrel.Current.Get<List<PoiModel>>(cacheKey) ?? new List<PoiModel>();
+                return GetOfflineData(cacheKey);
             }
 
-            // 2. CÓ MẠNG: Tiến hành gọi API như bình thường
+            // 2. CÓ MẠNG: Gọi API
             try
             {
                 var response = await _httpClient.GetAsync(url);
@@ -38,9 +37,13 @@ namespace CulinaryApp.Services
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     var pois = JsonSerializer.Deserialize<List<PoiModel>>(content, options);
 
-                    // LƯU DATA VÀO MÁY: Để dành cho lúc mất mạng (hết hạn sau 7 ngày)
+                    // LƯU OFFLINE BẰNG MAUI PREFERENCES (An toàn & Xịn hơn MonkeyCache)
                     if (pois != null)
-                        Barrel.Current.Add(cacheKey, pois, TimeSpan.FromDays(7));
+                    {
+                        // Biến danh sách thành chuỗi JSON và cất vào máy
+                        string jsonToSave = JsonSerializer.Serialize(pois);
+                        Preferences.Default.Set(cacheKey, jsonToSave);
+                    }
 
                     return pois;
                 }
@@ -50,8 +53,23 @@ namespace CulinaryApp.Services
                 System.Diagnostics.Debug.WriteLine($"LỖI API: {ex.Message}");
             }
 
-            // Nếu gọi API lỗi nhưng trong máy có data cũ thì vẫn lấy ra dùng tạm
-            return Barrel.Current.Get<List<PoiModel>>(cacheKey) ?? new List<PoiModel>();
+            // Nếu API lỗi, vẫn ráng moi data cũ ra dùng tạm
+            return GetOfflineData(cacheKey);
+        }
+
+        // --- HÀM PHỤ ĐỂ ĐỌC DATA OFFLINE ---
+        private List<PoiModel> GetOfflineData(string key)
+        {
+            // Lấy chuỗi JSON từ bộ nhớ máy ra
+            string savedJson = Preferences.Default.Get(key, string.Empty);
+
+            // Nếu có dữ liệu thì dịch ngược lại thành danh sách PoiModel
+            if (!string.IsNullOrEmpty(savedJson))
+            {
+                return JsonSerializer.Deserialize<List<PoiModel>>(savedJson) ?? new List<PoiModel>();
+            }
+
+            return new List<PoiModel>();
         }
     }
 }
