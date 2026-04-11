@@ -115,15 +115,29 @@ namespace CulinaryApp
 
         private async Task RefreshDataWithLanguageAsync()
         {
+            // 1. KIỂM TRA MẠNG: Hiện thông báo nếu máy đang offline
+            if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            {
+                MainThread.BeginInvokeOnMainThread(async () => {
+                    await DisplayAlert("Chế độ ngoại tuyến",
+                        "Bạn đang xem dữ liệu đã lưu trong máy. Vui lòng kết nối mạng để cập nhật thông tin mới nhất.",
+                        "Đã hiểu");
+                });
+            }
+
+            // 2. GỌI API: (Lúc này ApiService sẽ tự động lấy từ Cache nếu mất mạng)
             var pois = await _apiService.GetAllPoisAsync(_currentLang);
+
             if (pois != null && pois.Count > 0)
             {
                 _allPois = pois;
 
                 MainThread.BeginInvokeOnMainThread(() => {
+                    // Xóa các Ghim cũ (trừ ghim vị trí người dùng)
                     var oldPins = MainMap.Pins.Where(p => p.Label != "Bạn đang ở đây").ToList();
                     foreach (var pin in oldPins) MainMap.Pins.Remove(pin);
 
+                    // Vẽ lại các Ghim mới từ dữ liệu (Online hoặc Offline)
                     foreach (var poi in _allPois)
                     {
                         if (poi.Location?.Coordinates != null)
@@ -140,6 +154,7 @@ namespace CulinaryApp
                         }
                     }
 
+                    // Tính toán lại khoảng cách nếu có vị trí GPS
                     if (_myCurrentLocation != null)
                     {
                         foreach (var poi in _allPois)
@@ -151,6 +166,7 @@ namespace CulinaryApp
                         _allPois = _allPois.OrderBy(p => p.DistanceText).ToList();
                     }
 
+                    // Cập nhật lại danh sách hiển thị bên dưới
                     PoiCollectionView.ItemsSource = null;
                     PoiCollectionView.ItemsSource = _allPois;
                 });

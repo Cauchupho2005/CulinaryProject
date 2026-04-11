@@ -1,19 +1,20 @@
-# 1. Dùng .NET 10 SDK để Build ứng dụng
+# Sử dụng .NET 10 SDK
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy file dự án và khôi phục các gói (restore)
-COPY ["CulinaryBackend.csproj", "./"]
-RUN dotnet restore "./CulinaryBackend.csproj"
+# Chỉ cho Docker biết file .csproj nằm ở trong thư mục con
+COPY ["CulinaryBackend/CulinaryBackend.csproj", "CulinaryBackend/"]
+RUN dotnet restore "CulinaryBackend/CulinaryBackend.csproj"
 
-# Copy toàn bộ code và xuất bản (publish)
+# Copy toàn bộ code còn lại vào
 COPY . .
+
+# Chui vào thư mục con đó để Build
+WORKDIR "/src/CulinaryBackend"
 RUN dotnet publish "CulinaryBackend.csproj" -c Release -o /app/publish
 
-# 2. Dùng .NET 10 ASP.NET để Chạy ứng dụng (Nhẹ hơn)
+# Giai đoạn chạy (Runtime)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-
-# Lệnh khởi chạy ứng dụng
 ENTRYPOINT ["dotnet", "CulinaryBackend.dll"]
