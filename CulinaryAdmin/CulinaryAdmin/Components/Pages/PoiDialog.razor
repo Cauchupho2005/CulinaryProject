@@ -1,0 +1,87 @@
+﻿@using CulinaryAdmin.Models
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" IsValid="@_success">
+            <MudGrid>
+                @* Hàng 1: Tên và Địa chỉ *@
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="PoiData.Title" Label="Tên quán (*)" Required="true" RequiredError="Bắt buộc phải nhập tên quán!" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="PoiData.Address" Label="Địa chỉ" Variant="Variant.Outlined" />
+                </MudItem>
+
+                @* Hàng 2: Mô tả *@
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="PoiData.Description" Label="Mô tả quán ăn" Lines="3" Variant="Variant.Outlined" />
+                </MudItem>
+
+                @* Hàng 3: Link ảnh *@
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="PoiData.CoverImageUrl" Label="Đường dẫn ảnh (URL)" Variant="Variant.Outlined" HelperText="Ví dụ: https://imgur.com/anh-quan-oc.jpg" />
+                </MudItem>
+
+                @* Hàng 4: Tọa độ bản đồ (Kinh độ - Longitude, Vĩ độ - Latitude) *@
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="Longitude" Label="Kinh độ (Longitude)" Variant="Variant.Outlined" HideSpinButtons="true" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="Latitude" Label="Vĩ độ (Latitude)" Variant="Variant.Outlined" HideSpinButtons="true" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">LƯU DỮ LIỆU</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // 1. Đã thêm chữ 'I' vào IMudDialogInstance
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public PoiModel PoiData { get; set; } = new PoiModel();
+
+    // 2. Thêm '= null!' để dọn sạch cảnh báo CS8618
+    private MudForm _form = null!;
+    private bool _success;
+
+    private double Longitude
+    {
+        get => PoiData.Location?.Coordinates[0] ?? 0;
+        set
+        {
+            if (PoiData.Location == null) PoiData.Location = new GeoLocation();
+            PoiData.Location.Coordinates[0] = value;
+        }
+    }
+
+    private double Latitude
+    {
+        get => PoiData.Location?.Coordinates[1] ?? 0;
+        set
+        {
+            if (PoiData.Location == null) PoiData.Location = new GeoLocation();
+            PoiData.Location.Coordinates[1] = value;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        // 3. Đổi thành ValidateAsync() để xóa cảnh báo CS0618
+        await _form.ValidateAsync();
+        
+        if (_form.IsValid)
+        {
+            MudDialog.Close(DialogResult.Ok(PoiData));
+        }
+    }
+}

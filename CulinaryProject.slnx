@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="CulinaryAdmin/CulinaryAdmin.Client/CulinaryAdmin.Client.csproj" Id="df58db3b-0e93-40ae-b343-863bbb06e7ad" />
+  <Project Path="CulinaryAdmin/CulinaryAdmin/CulinaryAdmin.csproj" Id="4a4edcdd-e203-4fa9-8376-adf1381a9f09" />
   <Project Path="CulinaryApp/CulinaryApp/CulinaryApp.csproj" />
   <Project Path="CulinaryBackend/CulinaryBackend/CulinaryBackend.csproj" />
 </Solution>

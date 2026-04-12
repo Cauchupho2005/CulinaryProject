@@ -1,0 +1,115 @@
+﻿@page "/pois"
+@using CulinaryAdmin.Models
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Quản lý POI (Điểm đến)</MudText>
+
+@if (_pois == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@_pois" Hover="true" Striped="true" Filter="new Func<PoiModel, bool>(FilterFunction)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Danh sách POI</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Class="ml-4" OnClick="OpenAddDialog">
+                Thêm Quán Mới
+            </MudButton>
+
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Tìm kiếm theo tên hoặc địa chỉ..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Hình ảnh</MudTh>
+            <MudTh>Tên POI</MudTh>
+            <MudTh>Địa chỉ</MudTh>
+            <MudTh>Thao tác</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Hình ảnh">
+                <MudImage Src="@context.CoverImageUrl" Width="60" Height="40" ObjectFit="ObjectFit.Cover" Class="rounded-lg" />
+            </MudTd>
+            <MudTd DataLabel="Tên POI">@context.Title</MudTd>
+            <MudTd DataLabel="Địa chỉ">@context.Address</MudTd>
+            <MudTd DataLabel="Thao tác">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private List<PoiModel>? _pois;
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Gọi API lấy dữ liệu danh sách POI (mặc định lấy tiếng Việt)
+            _pois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi khi tải dữ liệu API: {ex.Message}");
+        }
+    }
+
+    private bool FilterFunction(PoiModel element)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (element.Title.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Address.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    // Hàm mở Dialog thêm mới và xử lý lưu DB
+    private async Task OpenAddDialog()
+    {
+        // 1. Cấu hình cửa sổ Popup
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        
+        // 2. Mở file PoiDialog.razor lên
+        var dialog = await DialogService.ShowAsync<PoiDialog>("Thêm Điểm Đến Mới", options);
+        var result = await dialog.Result;
+
+        // 3. Nếu Admin bấm nút "LƯU DỮ LIỆU" trong Popup
+        if (!result.Canceled)
+        {
+            var newPoi = (PoiModel)result.Data;
+            
+            try
+            {
+                // Bắn API Method POST lên Render
+                var response = await Http.PostAsJsonAsync("api/Poi", newPoi);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Thêm quán thành công!", Severity.Success);
+                    // Tải lại danh sách để hiện quán vừa thêm
+                    await OnInitializedAsync(); 
+                }
+                else
+                {
+                    Snackbar.Add("Lỗi khi lưu vào Database!", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Lỗi kết nối: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+
+}

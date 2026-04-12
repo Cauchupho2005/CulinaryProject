@@ -1,0 +1,88 @@
+﻿@page "/admin-dashboard"
+@rendermode InteractiveServer
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-6"><b>Tổng quan hệ thống</b></MudText>
+
+    @* 1. HÀNG THẺ THỐNG KÊ (KPI CARDS) *@
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Storefront" Color="Color.Primary" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tổng số Quán (POI)</MudText>
+                    <MudText Typo="Typo.h5"><b>1,245</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Người dùng App</MudText>
+                    <MudText Typo="Typo.h5"><b>8,920</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Chờ duyệt</MudText>
+                    <MudText Typo="Typo.h5"><b>24</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Báo cáo vi phạm</MudText>
+                    <MudText Typo="Typo.h5"><b>5</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* 2. HÀNG BIỂU ĐỒ (CHARTS) *@
+    <MudGrid>
+        @* Biểu đồ tròn: Phân bổ danh mục *@
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6">Phân bổ Danh mục Quán ăn</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    @* THÊM T="double" VÀO ĐÂY *@
+                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@dataPie" InputLabels="@labelsPie" Width="100%" Height="300px" />
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        @* Biểu đồ cột: Lượt người dùng đăng ký mới *@
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2">
+                <MudCardHeader>
+                    <MudText Typo="Typo.h6">Lượt đăng ký mới (7 ngày qua)</MudText>
+                </MudCardHeader>
+                <MudCardContent>
+                    @* THÊM T="double" VÀO ĐÂY *@
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@SeriesBar" XAxisLabels="@XAxisLabelsBar" Width="100%" Height="300px" />
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    // Dữ liệu cho Biểu đồ Tròn (Pie Chart)
+    double[] dataPie = { 45, 25, 20, 10 };
+    string[] labelsPie = { "Nhà hàng", "Quán Ăn vặt", "Cafe/Trà sữa", "Quán Nhậu" };
+
+    // Dữ liệu cho Biểu đồ Cột (Bar Chart)
+    // THÊM <double> VÀO CÁC CHỖ ChartSeries
+    public List<ChartSeries<double>> SeriesBar = new List<ChartSeries<double>>()
+    {
+        new ChartSeries<double>() { Name = "Người dùng mới", Data = new double[] { 40, 20, 25, 27, 46, 60, 48 } }
+    };
+    public string[] XAxisLabelsBar = { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+}
