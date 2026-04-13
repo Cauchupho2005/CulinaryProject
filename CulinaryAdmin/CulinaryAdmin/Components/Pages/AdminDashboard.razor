@@ -207,7 +207,7 @@
 
             // KPI Cards
             _poiCount = pois.Count;
-            _userCount = users.Count(u => u.Role == "admin" || u.Role == "super_admin");
+            _userCount = users.Count(u => u.Role == "admin");
             _ownerCount = users.Count(u => u.Role == "poi_owner");
             _lockedCount = users.Count(u => !u.IsActive);
 

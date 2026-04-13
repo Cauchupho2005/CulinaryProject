@@ -3,7 +3,6 @@
         <MudTextField Value="@User.Username" Label="Tên đăng nhập" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" Class="mb-3" />
         <MudTextField @bind-Value="_fullName" Label="Họ và tên" Variant="Variant.Outlined" Class="mb-3" />
         <MudSelect @bind-Value="_role" Label="Role" Variant="Variant.Outlined" Class="mb-3">
-            <MudSelectItem Value="@("super_admin")">super_admin</MudSelectItem>
             <MudSelectItem Value="@("admin")">admin</MudSelectItem>
             <MudSelectItem Value="@("poi_owner")">poi_owner</MudSelectItem>
         </MudSelect>

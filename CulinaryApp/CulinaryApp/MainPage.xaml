@@ -30,7 +30,7 @@
             <Border Grid.Row="0" BackgroundColor="#252525" Padding="15" StrokeThickness="0">
                 <Grid ColumnDefinitions="Auto, *, Auto">
                     <Label Grid.Column="0" Text="📍" FontSize="20" VerticalOptions="Center"/>
-                    <Label Grid.Column="1" Text="Điểm thuyết minh" TextColor="White" FontAttributes="Bold" FontSize="16" Margin="10,0,0,0" VerticalOptions="Center"/>
+                    <Label Grid.Column="1" Text="Địa điểm (Location)" TextColor="White" FontAttributes="Bold" FontSize="16" Margin="10,0,0,0" VerticalOptions="Center"/>
 
                     <Button x:Name="LangSelectBtn" Grid.Column="2" Text="🌐 VI ▼" 
                             BackgroundColor="#2A2A2A" TextColor="#FF7A00" FontAttributes="Bold" 

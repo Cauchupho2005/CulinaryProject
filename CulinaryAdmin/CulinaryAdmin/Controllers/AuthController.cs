@@ -31,7 +31,7 @@ namespace CulinaryAdmin.Controllers
                 authProperties);
 
             // SỬA CHỖ NÀY: Bẻ lái thông minh theo chức vụ
-            if (role == "admin" || role == "super_admin")
+            if (role == "admin" )
             {
                 return Redirect("/admin-dashboard");
             }
