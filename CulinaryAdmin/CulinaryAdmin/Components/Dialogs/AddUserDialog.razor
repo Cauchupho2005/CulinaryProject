@@ -1,0 +1,62 @@
+@using CulinaryAdmin.Models
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Username" Label="Tên đăng nhập (Email)" Variant="Variant.Outlined" 
+                                  Required="true" RequiredError="Tên đăng nhập là bắt buộc" Class="mb-3" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.Password" Label="Mật khẩu" Variant="Variant.Outlined" 
+                                  InputType="InputType.Password" Required="true" RequiredError="Mật khẩu là bắt buộc" Class="mb-3" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.FullName" Label="Họ tên" Variant="Variant.Outlined" Class="mb-3" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudSelect @bind-Value="_model.Role" Label="Quyền hạn" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem Value="@("admin")">Admin</MudSelectItem>
+                        <MudSelectItem Value="@("poi_owner")">Chủ quán (Owner)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField @bind-Value="_model.OwnerId" Label="Owner ID" Variant="Variant.Outlined" 
+                                  Disabled="@(_model.Role != "poi_owner")"
+                                  HelperText="Mã ID của quán sở hữu" Class="mb-3" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="!_isValid">Tạo tài khoản</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private RegisterRequest _model = new();
+    private MudForm _form = null!;
+    private bool _isValid;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            // Kiểm tra thủ công một lần nữa các trường bắt buộc để an tâm (null check)
+            if (string.IsNullOrWhiteSpace(_model.Username) || string.IsNullOrWhiteSpace(_model.Password))
+            {
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(_model));
+        }
+    }
+}

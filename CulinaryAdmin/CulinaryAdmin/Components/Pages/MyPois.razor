@@ -148,7 +148,8 @@ else
                 }
                 else
                 {
-                    Snackbar.Add("Lỗi khi lưu!", Severity.Error);
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Lỗi khi lưu: {errorMsg}", Severity.Error);
                 }
             }
             catch (Exception ex)

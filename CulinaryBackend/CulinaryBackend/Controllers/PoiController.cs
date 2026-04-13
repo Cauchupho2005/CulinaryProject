@@ -114,45 +114,56 @@ namespace CulinaryBackend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post(Poi newPoi)
+        public async Task<IActionResult> Post([FromBody] PoiCreateRequest request)
         {
-            if (string.IsNullOrWhiteSpace(newPoi.OwnerId))
+            if (!ModelState.IsValid)
             {
-                return BadRequest("OwnerId là bắt buộc. Admin không được tạo POI trực tiếp.");
+                return BadRequest(ModelState);
             }
 
-            var vi = newPoi.Localizations?.ContainsKey("vi") == true
-                ? newPoi.Localizations["vi"]
-                : null;
-
-            if (vi == null
-                || string.IsNullOrWhiteSpace(vi.Title)
-                || string.IsNullOrWhiteSpace(vi.Address)
-                || string.IsNullOrWhiteSpace(vi.Description))
+            var newPoi = new Poi
             {
-                return BadRequest("Thiếu dữ liệu bắt buộc: title, address, description.");
-            }
+                OwnerId = request.OwnerId,
+                CoverImageUrl = request.CoverImageUrl,
+                Status = "pending",
+                Localizations = new Dictionary<string, PoiLocalization>
+                {
+                    ["vi"] = new PoiLocalization
+                    {
+                        Title = request.Title,
+                        Description = request.Description,
+                        Address = request.Address
+                    }
+                },
+                Location = request.Location ?? new GeoLocation { Type = "Point", Coordinates = new double[] { 0, 0 } }
+            };
 
-            newPoi.Status = "pending";
             await _poiService.CreateAsync(newPoi);
 
-            var poiTitle = newPoi.Localizations?.ContainsKey("vi") == true
-                ? newPoi.Localizations["vi"].Title
-                : "POI mới";
-            await _emailService.SendPoiEventEmailAsync(poiTitle, "tạo mới", newPoi.Status);
-
-            var ownerEmail = await GetOwnerEmailByOwnerIdAsync(newPoi.OwnerId);
-            if (!string.IsNullOrWhiteSpace(ownerEmail))
+            // Gửi email ngầm để không làm chậm API
+            _ = Task.Run(async () =>
             {
-                await _emailService.SendCustomEmailAsync(
-                    ownerEmail,
-                    $"[Culinary] Quán '{poiTitle}' đã được gửi duyệt",
-                    $"<p>Quán <strong>{poiTitle}</strong> vừa được tạo và đang ở trạng thái <strong>{newPoi.Status}</strong>.</p>");
-            }
+                try
+                {
+                    await _emailService.SendPoiEventEmailAsync(request.Title, "tạo mới", newPoi.Status);
+                    var ownerEmail = await GetOwnerEmailByOwnerIdAsync(newPoi.OwnerId);
+                    if (!string.IsNullOrWhiteSpace(ownerEmail))
+                    {
+                        await _emailService.SendCustomEmailAsync(
+                            ownerEmail,
+                            $"[Culinary] Quán '{request.Title}' đã được gửi duyệt",
+                            $"<p>Quán <strong>{request.Title}</strong> vừa được tạo và đang ở trạng thái <strong>{newPoi.Status}</strong>.</p>");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Background email error: {ex.Message}");
+                }
+            });
 
             // GHI LOG
             var currentUser = User.Identity?.Name ?? newPoi.OwnerId;
-            await _userLogService.LogActionAsync(currentUser, "TẠO QUÁN ĂN", $"Đã tạo quán mới: {poiTitle}");
+            await _userLogService.LogActionAsync(currentUser, "TẠO QUÁN ĂN", $"Đã tạo quán mới: {request.Title}");
 
             return CreatedAtAction(nameof(Get), new { id = newPoi.Id }, newPoi);
         }

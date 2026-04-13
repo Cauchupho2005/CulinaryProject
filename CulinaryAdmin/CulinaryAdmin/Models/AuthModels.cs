@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CulinaryAdmin.Models
 {
@@ -6,6 +6,15 @@ namespace CulinaryAdmin.Models
     {
         public string Username { get; set; } = "";
         public string Password { get; set; } = "";
+    }
+
+    public class RegisterRequest
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string Role { get; set; } = "poi_owner";
+        public string? FullName { get; set; }
+        public string? OwnerId { get; set; }
     }
 
     public class AuthResponse

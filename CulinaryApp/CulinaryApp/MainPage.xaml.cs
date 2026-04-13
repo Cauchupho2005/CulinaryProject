@@ -44,7 +44,6 @@ namespace CulinaryApp
                 catch (Exception ex) { Debug.WriteLine(ex.Message); }
             };
 
-            // [MỚI THÊM] Bắt sự kiện khi người dùng nhấn vào bất kỳ Ghim nào trên bản đồ
             MainMap.PinClicked += OnMapPinClicked;
         }
 
@@ -53,6 +52,25 @@ namespace CulinaryApp
             base.OnAppearing();
             await InitializeDataAndStartTracking();
         }
+
+        // ================= HÀM BỌC THÉP TỌA ĐỘ (CHỐNG CRASH) =================
+        private (double Lat, double Lng) GetSafeCoordinates(double[] coordinates)
+        {
+            if (coordinates == null || coordinates.Length < 2) return (0, 0);
+
+            double val0 = coordinates[0];
+            double val1 = coordinates[1];
+
+            // Nếu val0 > 90, nó chắc chắn là Kinh độ (Longitude), ta phải đảo lại
+            if (val0 > 90 || val0 < -90)
+            {
+                return (val1, val0); // Trả về (Vĩ độ, Kinh độ)
+            }
+
+            // Ngược lại thì val0 đúng là Vĩ độ (Latitude)
+            return (val0, val1);
+        }
+        // =====================================================================
 
         private async Task InitializeDataAndStartTracking()
         {
@@ -67,10 +85,12 @@ namespace CulinaryApp
                     {
                         if (poi.Location?.Coordinates != null)
                         {
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+
                             var pin = new Mapsui.UI.Maui.Pin()
                             {
                                 Label = poi.Title,
-                                Position = new Mapsui.UI.Maui.Position(poi.Location.Coordinates[1], poi.Location.Coordinates[0]),
+                                Position = new Mapsui.UI.Maui.Position(lat, lng),
                                 Type = Mapsui.UI.Maui.PinType.Pin,
                                 Color = Microsoft.Maui.Graphics.Colors.DarkOrange,
                                 Scale = 0.8f
@@ -78,7 +98,12 @@ namespace CulinaryApp
                             MainMap.Pins.Add(pin);
                         }
                     }
-                    MoveMapToLocation(pois[0].Location.Coordinates[1], pois[0].Location.Coordinates[0], 2);
+
+                    if (pois[0].Location?.Coordinates != null)
+                    {
+                        var (firstLat, firstLng) = GetSafeCoordinates(pois[0].Location.Coordinates); // [ĐÃ BỌC THÉP]
+                        MoveMapToLocation(firstLat, firstLng, 2);
+                    }
                 });
             }
 
@@ -115,7 +140,6 @@ namespace CulinaryApp
 
         private async Task RefreshDataWithLanguageAsync()
         {
-            // 1. KIỂM TRA MẠNG: Hiện thông báo nếu máy đang offline
             if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
             {
                 MainThread.BeginInvokeOnMainThread(async () => {
@@ -125,7 +149,6 @@ namespace CulinaryApp
                 });
             }
 
-            // 2. GỌI API: (Lúc này ApiService sẽ tự động lấy từ Cache nếu mất mạng)
             var pois = await _apiService.GetAllPoisAsync(_currentLang);
 
             if (pois != null && pois.Count > 0)
@@ -133,19 +156,19 @@ namespace CulinaryApp
                 _allPois = pois;
 
                 MainThread.BeginInvokeOnMainThread(() => {
-                    // Xóa các Ghim cũ (trừ ghim vị trí người dùng)
                     var oldPins = MainMap.Pins.Where(p => p.Label != "Bạn đang ở đây").ToList();
                     foreach (var pin in oldPins) MainMap.Pins.Remove(pin);
 
-                    // Vẽ lại các Ghim mới từ dữ liệu (Online hoặc Offline)
                     foreach (var poi in _allPois)
                     {
                         if (poi.Location?.Coordinates != null)
                         {
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+
                             var pin = new Mapsui.UI.Maui.Pin()
                             {
                                 Label = poi.Title,
-                                Position = new Mapsui.UI.Maui.Position(poi.Location.Coordinates[1], poi.Location.Coordinates[0]),
+                                Position = new Mapsui.UI.Maui.Position(lat, lng),
                                 Type = Mapsui.UI.Maui.PinType.Pin,
                                 Color = Microsoft.Maui.Graphics.Colors.DarkOrange,
                                 Scale = 0.8f
@@ -154,19 +177,21 @@ namespace CulinaryApp
                         }
                     }
 
-                    // Tính toán lại khoảng cách nếu có vị trí GPS
                     if (_myCurrentLocation != null)
                     {
                         foreach (var poi in _allPois)
                         {
-                            var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(poi.Location.Coordinates[1], poi.Location.Coordinates[0]);
-                            double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
-                            poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
+                            if (poi.Location?.Coordinates != null)
+                            {
+                                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                                var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
+                                double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
+                                poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
+                            }
                         }
                         _allPois = _allPois.OrderBy(p => p.DistanceText).ToList();
                     }
 
-                    // Cập nhật lại danh sách hiển thị bên dưới
                     PoiCollectionView.ItemsSource = null;
                     PoiCollectionView.ItemsSource = _allPois;
                 });
@@ -228,7 +253,8 @@ namespace CulinaryApp
                     {
                         if (poi.Location?.Coordinates != null)
                         {
-                            var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(poi.Location.Coordinates[1], poi.Location.Coordinates[0]);
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                            var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
                             double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
                             poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
                         }
@@ -252,7 +278,8 @@ namespace CulinaryApp
                 if (poi.Location?.Coordinates == null) continue;
                 string poiId = poi.Title;
 
-                var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(poi.Location.Coordinates[1], poi.Location.Coordinates[0]);
+                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
                 double distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers) * 1000;
 
                 if (distanceMeters <= 30)
@@ -336,7 +363,6 @@ namespace CulinaryApp
 
             if (matchedPoi != null)
             {
-                // [ĐÃ SỬA LỖI CS1729]: Gọi trực tiếp hàm dùng chung thay vì giả lập sự kiện
                 OpenPoiDetail(matchedPoi);
                 TriggerAutoNarration(matchedPoi);
             }
@@ -349,39 +375,28 @@ namespace CulinaryApp
         }
 
         // ================= XỬ LÝ SỰ KIỆN UI CHUNG =================
-
-        // [MỚI] Bắt sự kiện người dùng Click thẳng vào cái Ghim trên bản đồ
         private void OnMapPinClicked(object sender, PinClickedEventArgs e)
         {
-            // Bỏ qua nếu bấm nhầm vào chỗ trống hoặc ghim GPS của người dùng
             if (e.Pin == null || e.Pin.Label == "Bạn đang ở đây") return;
 
-            // Lấy Tên quán ăn từ Label của Ghim để tìm trong danh sách Data
             var clickedPoi = _allPois.FirstOrDefault(p => p.Title == e.Pin.Label);
             if (clickedPoi != null)
             {
-                // Gọi hàm dùng chung để hiển thị chi tiết và đổi màu
                 OpenPoiDetail(clickedPoi);
-
-                // Đồng bộ hóa: Tự động highlight món đó trong danh sách CollectionView bên dưới
                 PoiCollectionView.SelectedItem = clickedPoi;
             }
 
-            // Chặn cái popup mặc định của bản đồ Mapsui hiện lên (vì mình đã làm Bảng chi tiết UI xịn hơn rồi)
             e.Handled = true;
         }
 
-        // Khi người dùng bấm vào danh sách bên dưới
         private void OnPoiSelected(object sender, SelectionChangedEventArgs e)
         {
             if (e.CurrentSelection.FirstOrDefault() is PoiModel poi)
             {
-                // [ĐÃ SỬA]: Rút gọn lại, chỉ cần gọi hàm dùng chung
                 OpenPoiDetail(poi);
             }
         }
 
-        // HÀM DÙNG CHUNG: Hiển thị bảng chi tiết, đổi màu ghim, zoom bản đồ
         private void OpenPoiDetail(PoiModel poi)
         {
             _selectedPoi = poi;
@@ -392,7 +407,6 @@ namespace CulinaryApp
             if (!string.IsNullOrEmpty(poi.CoverImageUrl))
                 DetailImage.Source = poi.CoverImageUrl;
 
-            // Đổi màu ghim trên bản đồ (Quán được chọn màu Đỏ to lên, quán khác màu Cam nhỏ lại)
             foreach (var pin in MainMap.Pins)
             {
                 if (pin.Label == "Bạn đang ở đây") continue;
@@ -400,12 +414,13 @@ namespace CulinaryApp
                 pin.Scale = (pin.Label == poi.Title) ? 1.2f : 0.8f;
             }
 
-            // Hiện bảng UI
             DetailPanel.IsVisible = true;
 
-            // Zoom nhẹ bản đồ tới vị trí đó
             if (poi.Location?.Coordinates != null)
-                MoveMapToLocation(poi.Location.Coordinates[1], poi.Location.Coordinates[0], 1);
+            {
+                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                MoveMapToLocation(lat, lng, 1);
+            }
         }
 
         private void OnCloseDetailClicked(object sender, EventArgs e)
@@ -413,7 +428,6 @@ namespace CulinaryApp
             DetailPanel.IsVisible = false;
             PoiCollectionView.SelectedItem = null;
 
-            // Khôi phục lại màu ghim gốc
             foreach (var pin in MainMap.Pins)
             {
                 if (pin.Label == "Bạn đang ở đây") continue;
@@ -433,8 +447,7 @@ namespace CulinaryApp
         {
             if (_selectedPoi?.Location?.Coordinates != null)
             {
-                double lat = _selectedPoi.Location.Coordinates[1];
-                double lon = _selectedPoi.Location.Coordinates[0];
+                var (lat, lon) = GetSafeCoordinates(_selectedPoi.Location.Coordinates); // [ĐÃ BỌC THÉP]
 
                 if (DeviceInfo.Platform == DevicePlatform.WinUI)
                 {
@@ -470,22 +483,15 @@ namespace CulinaryApp
         {
             if (_selectedPoi != null)
             {
-                // Ưu tiên dùng Id (nếu kết nối DB), nếu không có DB thì dùng Title làm mã định danh
                 string qrContent = !string.IsNullOrEmpty(_selectedPoi.Id) ? _selectedPoi.Id : _selectedPoi.Title;
-
-                // Nạp nội dung vào bộ sinh mã QR
                 QrCodeGenerator.Value = qrContent;
-
-                // Hiển thị khung Popup lên
                 QrPopupPanel.IsVisible = true;
             }
         }
 
         private void OnCloseQRPopupClicked(object sender, EventArgs e)
         {
-            // Ẩn khung Popup đi
             QrPopupPanel.IsVisible = false;
         }
-
     }
 }

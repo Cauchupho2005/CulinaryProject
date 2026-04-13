@@ -8,9 +8,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMudServices();
 
 // Đăng ký HttpClient với địa chỉ API của hệ thống
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddScoped(sp => 
 {
-    BaseAddress = new Uri("https://culinary-api-backend.onrender.com")
+    // Nếu đang chạy local, tự động trỏ về localhost:5000
+    var apiBaseUrl = builder.Environment.IsDevelopment() 
+        ? "http://localhost:5000" 
+        : "https://culinary-api-backend.onrender.com";
+        
+    return new HttpClient
+    {
+        BaseAddress = new Uri(apiBaseUrl)
+    };
 });
 
 // ================================================================
