@@ -1,0 +1,149 @@
+@page "/approvals"
+@using CulinaryAdmin.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-2">Duyệt Quán Mới</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Danh sách POI chờ phê duyệt từ chủ quán. Kiểm tra thông tin rồi Duyệt hoặc Từ chối.</MudText>
+
+@if (_pendingPois == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_pendingPois.Count == 0)
+{
+    <MudAlert Severity="Severity.Success" Class="mt-4">
+        <MudText>Không có quán nào đang chờ duyệt. Tất cả đã được xử lý!</MudText>
+    </MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.subtitle2" Class="mb-3">
+        Đang chờ duyệt: <MudChip T="string" Color="Color.Warning" Size="Size.Small">@_pendingPois.Count quán</MudChip>
+    </MudText>
+
+    <MudGrid>
+        @foreach (var poi in _pendingPois)
+        {
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Elevation="2" Style="height:100%;display:flex;flex-direction:column;">
+                    @if (!string.IsNullOrEmpty(poi.CoverImageUrl))
+                    {
+                        <MudCardMedia Image="@poi.CoverImageUrl" Height="180" Style="object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div style="height:180px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;">
+                            <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Large" Color="Color.Secondary" />
+                        </div>
+                    }
+                    <MudCardContent Style="flex:1;">
+                        <MudText Typo="Typo.h6" Class="mb-2"><b>@poi.Title</b></MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" /> @poi.Address
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;" Class="mb-2">
+                            @(string.IsNullOrEmpty(poi.Description) ? "Không có mô tả" : poi.Description)
+                        </MudText>
+                        @if (poi.Location?.Coordinates != null && poi.Location.Coordinates.Length == 2)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">
+                                📍 @poi.Location.Coordinates[0].ToString("F4"), @poi.Location.Coordinates[1].ToString("F4")
+                            </MudChip>
+                        }
+                    </MudCardContent>
+                    <MudCardActions Class="d-flex justify-space-between pa-3">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.CheckCircle"
+                                   OnClick="@(() => ApprovePoi(poi))">Duyệt</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.Cancel"
+                                   OnClick="@(() => RejectPoi(poi))" Class="ml-2">Từ chối</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<PoiModel>? _pendingPois;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPending();
+    }
+
+    private async Task LoadPending()
+    {
+        try
+        {
+            _pendingPois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&status=pending") ?? new List<PoiModel>();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
+            _pendingPois = new List<PoiModel>();
+        }
+    }
+
+    private async Task ApprovePoi(PoiModel poi)
+    {
+        var p = new DialogParameters();
+        p.Add("ContentText", $"Duyệt quán '{poi.Title}' và cho hiển thị trên ứng dụng?");
+        p.Add("ButtonText", "Duyệt");
+        p.Add("Color", Color.Success);
+        var d = await DialogService.ShowAsync<ConfirmDialog>("Xác nhận duyệt", p, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall });
+        var dr = await d.Result;
+        if (dr.Canceled) return;
+
+        try
+        {
+            var response = await Http.PatchAsync($"api/Poi/{poi.Id}/approve", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Đã duyệt quán '{poi.Title}'!", Severity.Success);
+                await LoadPending();
+            }
+            else
+            {
+                Snackbar.Add("Lỗi khi duyệt!", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RejectPoi(PoiModel poi)
+    {
+        var p = new DialogParameters();
+        p.Add("ContentText", $"Từ chối quán '{poi.Title}'? Quán sẽ bị đánh dấu rejected.");
+        p.Add("ButtonText", "Từ chối");
+        p.Add("Color", Color.Error);
+        var d = await DialogService.ShowAsync<ConfirmDialog>("Xác nhận từ chối", p, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall });
+        var dr = await d.Result;
+        if (dr.Canceled) return;
+
+        try
+        {
+            var response = await Http.PatchAsync($"api/Poi/{poi.Id}/reject", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Đã từ chối quán '{poi.Title}'!", Severity.Info);
+                await LoadPending();
+            }
+            else
+            {
+                Snackbar.Add("Lỗi khi từ chối!", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+}

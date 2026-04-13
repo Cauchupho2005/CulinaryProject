@@ -1,6 +1,19 @@
 ﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        @{
+            var path = routeData.PageType.GetCustomAttributes(typeof(Microsoft.AspNetCore.Components.RouteAttribute), false)
+                .Cast<Microsoft.AspNetCore.Components.RouteAttribute>()
+                .FirstOrDefault()?.Template ?? "";
+            var isOwnerPage = path == "/owner-dashboard" || path == "/my-pois";
+        }
+        @if (isOwnerPage)
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.OwnerLayout)" />
+        }
+        else
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        }
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>

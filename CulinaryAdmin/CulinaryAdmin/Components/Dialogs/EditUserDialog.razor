@@ -1,0 +1,49 @@
+<MudDialog>
+    <DialogContent>
+        <MudTextField Value="@User.Username" Label="Tên đăng nhập" Variant="Variant.Outlined" ReadOnly="true" Disabled="true" Class="mb-3" />
+        <MudTextField @bind-Value="_fullName" Label="Họ và tên" Variant="Variant.Outlined" Class="mb-3" />
+        <MudSelect @bind-Value="_role" Label="Role" Variant="Variant.Outlined" Class="mb-3">
+            <MudSelectItem Value="@("super_admin")">super_admin</MudSelectItem>
+            <MudSelectItem Value="@("admin")">admin</MudSelectItem>
+            <MudSelectItem Value="@("poi_owner")">poi_owner</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="_ownerId" Label="Owner ID (chỉ dành cho poi_owner)" Variant="Variant.Outlined" HelperText="Nhập ID của POI mà chủ quán sở hữu" Class="mb-3" />
+        <MudSwitch @bind-Value="_isActive" Label="Tài khoản hoạt động" Color="Color.Success" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Huỷ</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu thay đổi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public UserAdminModel User { get; set; } = new();
+
+    private string _fullName = "";
+    private string _role = "";
+    private string? _ownerId;
+    private bool _isActive = true;
+
+    protected override void OnParametersSet()
+    {
+        _fullName = User.FullName ?? "";
+        _role = User.Role ?? "poi_owner";
+        _ownerId = User.OwnerId;
+        _isActive = User.IsActive;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        var request = new UpdateUserRequest
+        {
+            FullName = _fullName,
+            Role = _role,
+            OwnerId = _ownerId,
+            IsActive = _isActive
+        };
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+}

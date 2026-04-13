@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager NavManager
 @inject AuthenticationStateProvider AuthStateProvider
@@ -11,9 +11,8 @@
 @if (_isAuthenticated)
 {
     <MudLayout>
-        @* Thanh Header bên trên *@
         <MudAppBar Elevation="1" Style="background: white; border-bottom: 1px solid #e2e8f0;">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Default" Edge="Edge.Start" OnClick="@(() => _drawerOpen = !_drawerOpen)" />
             <MudText Typo="Typo.h6" Class="ml-3" Style="color: #1e293b; font-weight: 600;">Culinary Admin</MudText>
             <MudSpacer />
             <MudIconButton Icon="@Icons.Material.Filled.Person" Style="background: #ccff00; color: #0f172a; border-radius: 12px;" Class="mr-2" />
@@ -21,12 +20,14 @@
             <MudIconButton Icon="@Icons.Material.Filled.Logout" Style="color: #64748b;" Href="/auth/logout" />
         </MudAppBar>
 
-        @* Thanh Menu bên trái *@
         <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-            <NavMenu />
+            <MudNavMenu>
+                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="px-4 mt-4 mb-2">CHỦ QUÁN (OWNER)</MudText>
+                <MudNavLink Href="/owner-dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Tổng quan của tôi</MudNavLink>
+                <MudNavLink Href="/my-pois" Icon="@Icons.Material.Filled.RestaurantMenu">Quán của tôi</MudNavLink>
+            </MudNavMenu>
         </MudDrawer>
 
-        @* Phần nội dung chính ở giữa *@
         <MudMainContent>
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pt-4">
                 @Body
@@ -34,17 +35,8 @@
         </MudMainContent>
     </MudLayout>
 }
-else if (_checked)
-{
-    @* Chưa đăng nhập — đang redirect *@
-    <MudContainer Class="d-flex align-center justify-center" Style="height: 100vh;">
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-        <MudText Class="ml-4">Đang chuyển hướng...</MudText>
-    </MudContainer>
-}
 else
 {
-    @* Đang kiểm tra *@
     <MudContainer Class="d-flex align-center justify-center" Style="height: 100vh;">
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
         <MudText Class="ml-4">Đang kiểm tra quyền truy cập...</MudText>
@@ -52,12 +44,9 @@ else
 }
 
 @code {
-    bool _drawerOpen = true;
+    private bool _drawerOpen = true;
     private bool _isAuthenticated = false;
-    private bool _checked = false;
     private string _username = "";
-
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,7 +60,6 @@ else
         }
         else
         {
-            _checked = true;
             NavManager.NavigateTo("/login", forceLoad: true);
         }
     }

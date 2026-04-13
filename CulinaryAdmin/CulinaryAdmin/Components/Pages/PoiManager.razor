@@ -1,23 +1,28 @@
 ﻿@page "/pois"
+@using CulinaryAdmin.Components.Dialogs
 @using CulinaryAdmin.Models
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
+@rendermode InteractiveServer
+
 <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Quản lý POI (Điểm đến)</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-4" />
+}
 
 @if (_pois == null)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText Typo="Typo.body1" Color="Color.Secondary">Đang tải dữ liệu...</MudText>
 }
 else
 {
-    <MudTable Items="@_pois" Hover="true" Striped="true" Filter="new Func<PoiModel, bool>(FilterFunction)">
+    <MudTable Items="@_pois" Hover="true" Striped="true" Dense="true" Filter="new Func<PoiModel, bool>(FilterFunction)">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Danh sách POI</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Class="ml-4" OnClick="OpenAddDialog">
-                Thêm Quán Mới
-            </MudButton>
+            <MudText Typo="Typo.h6">Danh sách POI (@_pois.Count quán)</MudText>
 
             <MudSpacer />
             <MudTextField @bind-Value="_searchString" Placeholder="Tìm kiếm theo tên hoặc địa chỉ..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -26,21 +31,48 @@ else
             <MudTh>Hình ảnh</MudTh>
             <MudTh>Tên POI</MudTh>
             <MudTh>Địa chỉ</MudTh>
-            <MudTh>Thao tác</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh Style="text-align: center;">Thao tác</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Hình ảnh">
-                <MudImage Src="@context.CoverImageUrl" Width="60" Height="40" ObjectFit="ObjectFit.Cover" Class="rounded-lg" />
+                @if (!string.IsNullOrEmpty(context.CoverImageUrl))
+                {
+                    <MudImage Src="@context.CoverImageUrl" Width="80" Height="60" ObjectFit="ObjectFit.Cover" Class="rounded-lg" Style="border: 1px solid #e0e0e0;" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Size="Size.Large" Color="Color.Default" />
+                }
             </MudTd>
-            <MudTd DataLabel="Tên POI">@context.Title</MudTd>
-            <MudTd DataLabel="Địa chỉ">@context.Address</MudTd>
-            <MudTd DataLabel="Thao tác">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" />
+            <MudTd DataLabel="Tên POI">
+                <MudText Typo="Typo.body2"><b>@context.Title</b></MudText>
+            </MudTd>
+            <MudTd DataLabel="Địa chỉ">
+                <MudText Typo="Typo.body2">@context.Address</MudText>
+            </MudTd>
+            <MudTd DataLabel="Trạng thái">
+                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Thao tác" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" Title="Chi tiết"
+                               OnClick="@(() => OpenDetailsDialog(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Map" Color="Color.Primary" Size="Size.Small" Title="Xem bản đồ"
+                               Href="@GetMapUrl(context)" Target="_blank" />
+                @if (context.Status == "deleted")
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Restore" Color="Color.Success" Size="Size.Small" Title="Khôi phục"
+                                   OnClick="@(() => RestorePoi(context))" />
+                }
+                else
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" Title="Xoá"
+                                   OnClick="@(() => DeletePoi(context))" />
+                }
             </MudTd>
         </RowTemplate>
         <PagerContent>
-            <MudTablePager />
+            <MudTablePager PageSizeOptions="new int[]{10, 25, 50}" />
         </PagerContent>
     </MudTable>
 }
@@ -48,17 +80,28 @@ else
 @code {
     private List<PoiModel>? _pois;
     private string _searchString = "";
+    private bool _isLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadPois();
+    }
+
+    private async Task LoadPois()
+    {
+        _isLoading = true;
         try
         {
-            // Gọi API lấy dữ liệu danh sách POI (mặc định lấy tiếng Việt)
-            _pois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi");
+            _pois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&includeDeleted=true");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Lỗi khi tải dữ liệu API: {ex.Message}");
+            Snackbar.Add($"Lỗi khi tải dữ liệu API: {ex.Message}", Severity.Error);
+            _pois = new List<PoiModel>();
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
@@ -73,43 +116,118 @@ else
         return false;
     }
 
-    // Hàm mở Dialog thêm mới và xử lý lưu DB
     private async Task OpenAddDialog()
     {
-        // 1. Cấu hình cửa sổ Popup
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        
-        // 2. Mở file PoiDialog.razor lên
-        var dialog = await DialogService.ShowAsync<PoiDialog>("Thêm Điểm Đến Mới", options);
-        var result = await dialog.Result;
+        // Disabled
+    }
 
-        // 3. Nếu Admin bấm nút "LƯU DỮ LIỆU" trong Popup
-        if (!result.Canceled)
+    private async Task RestorePoi(PoiModel poi)
+    {
+        try
         {
-            var newPoi = (PoiModel)result.Data;
-            
+            var response = await Http.PatchAsync($"api/Poi/{poi.Id}/restore", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Đã khôi phục quán thành công!", Severity.Success);
+                await LoadPois();
+            }
+            else
+            {
+                Snackbar.Add("Lỗi khi khôi phục!", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenDetailsDialog(PoiModel poi)
+    {
+        await TrackPoiVisit(poi.Id);
+
+        var parameters = new DialogParameters
+        {
+            ["PoiData"] = poi
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = false, CloseOnEscapeKey = true };
+        await DialogService.ShowAsync<PoiDetailsDialog>("Chi tiết quán", parameters, options);
+    }
+
+    private async Task TrackPoiVisit(string? poiId)
+    {
+        if (string.IsNullOrWhiteSpace(poiId))
+            return;
+
+        try
+        {
+            await Http.PostAsync($"api/PoiVisit/{poiId}", null);
+        }
+        catch
+        {
+            // Không chặn luồng chính nếu tracking lỗi
+        }
+    }
+
+    private static string GetMapUrl(PoiModel poi)
+    {
+        if (poi.Location?.Coordinates == null || poi.Location.Coordinates.Length < 2)
+            return "https://maps.google.com";
+
+        var lng = poi.Location.Coordinates[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lat = poi.Location.Coordinates[1].ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return $"https://www.google.com/maps?q={lat},{lng}";
+    }
+
+    private static Color GetStatusColor(string? status) => status switch
+    {
+        "approved" => Color.Success,
+        "pending" => Color.Warning,
+        "rejected" => Color.Error,
+        "deleted" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private static string GetStatusText(string? status) => status switch
+    {
+        "approved" => "Đã duyệt",
+        "pending" => "Chờ duyệt",
+        "rejected" => "Từ chối",
+        "deleted" => "Đã xóa",
+        _ => "Không rõ"
+    };
+
+    private async Task DeletePoi(PoiModel poi)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("ContentText", $"Bạn có chắc muốn xoá quán '{poi.Title}' không? Có thể khôi phục lại sau.");
+        parameters.Add("ButtonText", "Xoá");
+        parameters.Add("Color", Color.Error);
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Xác nhận xoá", parameters, options);
+        var dialogResult = await dialog.Result;
+        bool? confirm = !dialogResult.Canceled;
+
+        if (confirm == true)
+        {
             try
             {
-                // Bắn API Method POST lên Render
-                var response = await Http.PostAsJsonAsync("api/Poi", newPoi);
-                
+                var response = await Http.DeleteAsync($"api/Poi/{poi.Id}");
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add("Thêm quán thành công!", Severity.Success);
-                    // Tải lại danh sách để hiện quán vừa thêm
-                    await OnInitializedAsync(); 
+                    Snackbar.Add("Đã xoá quán!", Severity.Success);
+                    await LoadPois();
                 }
                 else
                 {
-                    Snackbar.Add("Lỗi khi lưu vào Database!", Severity.Error);
+                    Snackbar.Add("Lỗi khi xoá!", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Lỗi kết nối: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
             }
         }
     }
-
-
 }

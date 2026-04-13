@@ -1,4 +1,6 @@
-﻿@page "/admin-dashboard"
+@page "/admin-dashboard"
+@using CulinaryAdmin.Models
+@inject HttpClient Http
 @rendermode InteractiveServer
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
     <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-6"><b>Tổng quan hệ thống</b></MudText>
@@ -10,7 +12,14 @@
                 <MudIcon Icon="@Icons.Material.Filled.Storefront" Color="Color.Primary" Size="Size.Large" Class="mr-4" />
                 <div>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">Tổng số Quán (POI)</MudText>
-                    <MudText Typo="Typo.h5"><b>1,245</b></MudText>
+                    @if (_isLoading)
+                    {
+                        <MudSkeleton Width="60px" Height="32px" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h5"><b>@_poiCount</b></MudText>
+                    }
                 </div>
             </MudPaper>
         </MudItem>
@@ -18,8 +27,15 @@
             <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
                 <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Info" Size="Size.Large" Class="mr-4" />
                 <div>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Người dùng App</MudText>
-                    <MudText Typo="Typo.h5"><b>8,920</b></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tài khoản Admin</MudText>
+                    @if (_isLoading)
+                    {
+                        <MudSkeleton Width="60px" Height="32px" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h5"><b>@_userCount</b></MudText>
+                    }
                 </div>
             </MudPaper>
         </MudItem>
@@ -27,62 +43,245 @@
             <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
                 <div>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Chờ duyệt</MudText>
-                    <MudText Typo="Typo.h5"><b>24</b></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Chủ quán (Owner)</MudText>
+                    @if (_isLoading)
+                    {
+                        <MudSkeleton Width="60px" Height="32px" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h5"><b>@_ownerCount</b></MudText>
+                    }
                 </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
+                <MudIcon Icon="@Icons.Material.Filled.LockPerson" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
                 <div>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Báo cáo vi phạm</MudText>
-                    <MudText Typo="Typo.h5"><b>5</b></MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">TK bị khoá</MudText>
+                    @if (_isLoading)
+                    {
+                        <MudSkeleton Width="60px" Height="32px" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h5"><b>@_lockedCount</b></MudText>
+                    }
                 </div>
             </MudPaper>
         </MudItem>
     </MudGrid>
 
-    @* 2. HÀNG BIỂU ĐỒ (CHARTS) *@
+    @* 2. THỐNG KÊ HIỂN THỊ TRỰC QUAN *@
     <MudGrid>
-        @* Biểu đồ tròn: Phân bổ danh mục *@
         <MudItem xs="12" md="6">
             <MudCard Elevation="2">
                 <MudCardHeader>
                     <MudText Typo="Typo.h6">Phân bổ Danh mục Quán ăn</MudText>
                 </MudCardHeader>
                 <MudCardContent>
-                    @* THÊM T="double" VÀO ĐÂY *@
-                    <MudChart T="double" ChartType="ChartType.Pie" InputData="@dataPie" InputLabels="@labelsPie" Width="100%" Height="300px" />
+                    @if (_categoryStats.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">Chưa có dữ liệu danh mục.</MudAlert>
+                    }
+                    else
+                    {
+                        @foreach (var item in _categoryStats)
+                        {
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
+                                <MudText Typo="Typo.body2">@item.Label</MudText>
+                                <MudChip T="int" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@item.Count</MudChip>
+                            </MudStack>
+                            <MudProgressLinear Color="Color.Primary" Rounded="true" Value="@GetCategoryPercent(item.Count)" Class="mb-3" />
+
+                            @if (item.Label == "Khác" && _otherCategoryPois.Count > 0)
+                            {
+                                <MudPaper Elevation="0" Class="pa-2 mb-3" Style="border:1px dashed #cbd5e1;background:#f8fafc;">
+                                    <MudText Typo="Typo.caption" Class="mb-1"><b>Danh sách quán trong mục "Khác"</b></MudText>
+                                    @foreach (var poiTitle in _otherCategoryPois)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text" Class="mr-1 mb-1">@poiTitle</MudChip>
+                                    }
+                                </MudPaper>
+                            }
+                        }
+                    }
                 </MudCardContent>
             </MudCard>
         </MudItem>
 
-        @* Biểu đồ cột: Lượt người dùng đăng ký mới *@
         <MudItem xs="12" md="6">
             <MudCard Elevation="2">
                 <MudCardHeader>
                     <MudText Typo="Typo.h6">Lượt đăng ký mới (7 ngày qua)</MudText>
                 </MudCardHeader>
                 <MudCardContent>
-                    @* THÊM T="double" VÀO ĐÂY *@
-                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@SeriesBar" XAxisLabels="@XAxisLabelsBar" Width="100%" Height="300px" />
+                    <MudTable Items="_userRegistrations" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Ngày</MudTh>
+                            <MudTh style="text-align:right;">Số đăng ký</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Ngày">@context.Day</MudTd>
+                            <MudTd DataLabel="Số đăng ký" style="text-align:right;">
+                                <MudChip T="int" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">@context.Count</MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
                 </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
+
+    <MudPaper Elevation="1" Class="pa-4 mb-6" Style="background: linear-gradient(120deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="2">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6">Thống kê truy cập POI (Admin)</MudText>
+                <MudText Typo="Typo.body2">Khu vực này hiển thị mức độ quan tâm của người dùng theo từng quán.</MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="1">
+                <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">Tổng lượt truy cập: @_totalVisits</MudChip>
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">POI có dữ liệu: @_visitStats.Count</MudChip>
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Refresh" OnClick="ReloadVisitStats">
+                    Làm mới
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Top quán được quan tâm</MudText>
+    <MudPaper Elevation="2" Class="pa-3 mb-6">
+        @if (_visitStats.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Chưa có dữ liệu lượt truy cập.
+            </MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_visitStats" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh style="width:70px;">Top</MudTh>
+                    <MudTh>Quán</MudTh>
+                    <MudTh style="text-align:right;">Lượt truy cập</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Top">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">#@(_visitStats.IndexOf(context) + 1)</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Quán">@context.PoiTitle</MudTd>
+                    <MudTd DataLabel="Lượt truy cập" style="text-align:right;">
+                        <MudChip T="int" Color="Color.Info" Variant="Variant.Filled">@context.TotalVisits</MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
 </MudContainer>
 
 @code {
-    // Dữ liệu cho Biểu đồ Tròn (Pie Chart)
-    double[] dataPie = { 45, 25, 20, 10 };
-    string[] labelsPie = { "Nhà hàng", "Quán Ăn vặt", "Cafe/Trà sữa", "Quán Nhậu" };
+    private bool _isLoading = true;
+    private int _poiCount = 0;
+    private int _userCount = 0;
+    private int _ownerCount = 0;
+    private int _lockedCount = 0;
+    private int _totalVisits = 0;
+    private List<PoiVisitStatsModel> _visitStats = new();
+    private List<string> _otherCategoryPois = new();
 
-    // Dữ liệu cho Biểu đồ Cột (Bar Chart)
-    // THÊM <double> VÀO CÁC CHỖ ChartSeries
-    public List<ChartSeries<double>> SeriesBar = new List<ChartSeries<double>>()
+    private List<(string Label, int Count)> _categoryStats = new();
+    private List<(string Day, int Count)> _userRegistrations = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        new ChartSeries<double>() { Name = "Người dùng mới", Data = new double[] { 40, 20, 25, 27, 46, 60, 48 } }
-    };
-    public string[] XAxisLabelsBar = { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+        try
+        {
+            var poisTask = Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&includeDeleted=true");
+            var usersTask = Http.GetFromJsonAsync<List<UserAdminModel>>("api/User");
+
+            await Task.WhenAll(poisTask, usersTask);
+
+            var pois = poisTask.Result ?? new List<PoiModel>();
+            var users = usersTask.Result ?? new List<UserAdminModel>();
+
+            // KPI Cards
+            _poiCount = pois.Count;
+            _userCount = users.Count(u => u.Role == "admin" || u.Role == "super_admin");
+            _ownerCount = users.Count(u => u.Role == "poi_owner");
+            _lockedCount = users.Count(u => !u.IsActive);
+
+            // Category Stats
+            var categoryMap = new Dictionary<string, int>
+            {
+                { "Nhà hàng", 0 },
+                { "Quán ăn", 0 },
+                { "Cafe", 0 },
+                { "Quán nhậu", 0 },
+                { "Khác", 0 }
+            };
+
+            foreach (var poi in pois)
+            {
+                var title = poi.Title?.ToLower() ?? "";
+                if (title.Contains("nhà hàng") || title.Contains("restaurant"))
+                    categoryMap["Nhà hàng"]++;
+
+                else if (title.Contains("cafe") || title.Contains("cà phê") || title.Contains("trà sữa"))
+                    categoryMap["Cafe"]++;
+                else if (title.Contains("nhậu") || title.Contains("bar") || title.Contains("beer"))
+                    categoryMap["Quán nhậu"]++;
+                else if (title.Contains("quán") || title.Contains("ăn"))
+                    categoryMap["Quán ăn"]++;
+                else
+                {
+                    categoryMap["Khác"]++;
+                    if (!string.IsNullOrWhiteSpace(poi.Title))
+                        _otherCategoryPois.Add(poi.Title);
+                }
+            }
+
+            _categoryStats = categoryMap
+                .Where(x => x.Value > 0)
+                .OrderByDescending(x => x.Value)
+                .Select(x => (x.Key, x.Value))
+                .ToList();
+
+            // User Registrations
+            var today = DateTime.UtcNow.Date;
+            var last7Days = Enumerable.Range(0, 7).Select(i => today.AddDays(-6 + i)).ToArray();
+            _userRegistrations = last7Days.Select(day =>
+            {
+                var count = users.Count(u => u.CreatedAt.Date == day);
+                return (day.ToString("dd/MM"), count);
+            }).ToList();
+
+            await ReloadVisitStats();
+        }
+        catch
+        {
+            // Giữ giá trị mặc định nếu API lỗi
+            _categoryStats = new List<(string Label, int Count)>();
+            _userRegistrations = new List<(string Day, int Count)>();
+            _visitStats = new List<PoiVisitStatsModel>();
+            _totalVisits = 0;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ReloadVisitStats()
+    {
+        _visitStats = await Http.GetFromJsonAsync<List<PoiVisitStatsModel>>("api/PoiVisit/stats") ?? new List<PoiVisitStatsModel>();
+        _visitStats = _visitStats.OrderByDescending(x => x.TotalVisits).Take(10).ToList();
+        _totalVisits = _visitStats.Sum(x => x.TotalVisits);
+    }
+
+    private double GetCategoryPercent(int count)
+    {
+        var max = _categoryStats.Count == 0 ? 1 : _categoryStats.Max(x => x.Count);
+        return max == 0 ? 0 : (double)count / max * 100d;
+    }
 }

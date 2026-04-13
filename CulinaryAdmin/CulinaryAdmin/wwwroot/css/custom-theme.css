@@ -1,0 +1,334 @@
+/* ===== CUSTOM THEME - HRM Pro Style ===== */
+
+/* Import Inter Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Global Styles */
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background: #f8fafc !important;
+}
+
+/* Override MudBlazor Primary Color to Lime */
+:root {
+    --mud-palette-primary: #ccff00;
+    --mud-palette-primary-rgb: 204, 255, 0;
+    --mud-palette-primary-darken: #b8e600;
+    --mud-palette-primary-lighten: #e0ff66;
+}
+
+/* Larger Border Radius for Cards & Buttons */
+.mud-paper {
+    border-radius: 20px !important;
+    border: 1px solid #f1f5f9;
+    transition: all 0.25s ease;
+}
+
+.mud-paper:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04) !important;
+    transform: translateY(-2px);
+}
+
+.mud-button-root {
+    border-radius: 14px !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    padding: 11px 16px !important;
+    font-size: 13px !important;
+}
+
+.mud-button-filled-primary {
+    background: #ccff00 !important;
+    color: #0f172a !important;
+    box-shadow: 0 4px 20px rgba(204, 255, 0, 0.3) !important;
+}
+
+.mud-button-filled-primary:hover {
+    background: #b8e600 !important;
+    box-shadow: 0 8px 30px rgba(204, 255, 0, 0.5) !important;
+    transform: translateY(-2px);
+}
+
+/* TextField & Select */
+.mud-input {
+    border-radius: 14px !important;
+    font-size: 13.5px !important;
+}
+
+.mud-input-outlined .mud-input-outlined-border {
+    border-color: #e2e8f0 !important;
+}
+
+.mud-input-outlined:hover .mud-input-outlined-border {
+    border-color: #ccff00 !important;
+}
+
+.mud-input-outlined.mud-input-adorned-start .mud-input-root {
+    padding-left: 42px !important;
+}
+
+/* Table */
+.mud-table {
+    border-radius: 20px !important;
+    overflow: hidden;
+}
+
+.mud-table-head {
+    background: #f8fafc !important;
+}
+
+.mud-table-head .mud-table-cell {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #94a3b8 !important;
+    padding: 14px 20px !important;
+}
+
+.mud-table-row {
+    transition: background-color 0.15s ease;
+}
+
+.mud-table-row:hover {
+    background: #f8fafc !important;
+}
+
+.mud-table-cell {
+    padding: 14px 20px !important;
+    font-size: 13px !important;
+    color: #334155;
+}
+
+/* Cards & Stat Cards */
+.mud-card {
+    border-radius: 20px !important;
+    border: 1px solid #f1f5f9;
+}
+
+.mud-card-header {
+    padding: 24px 24px 0 !important;
+}
+
+.mud-card-content {
+    padding: 24px !important;
+}
+
+.mud-card-actions {
+    padding: 16px 24px !important;
+}
+
+/* AppBar */
+.mud-appbar {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.mud-appbar .mud-typography {
+    font-weight: 700 !important;
+}
+
+/* Drawer / Sidebar */
+.mud-drawer {
+    border-right: 1px solid #f1f5f9 !important;
+}
+
+.mud-nav-link {
+    border-radius: 14px !important;
+    margin-bottom: 2px !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    color: #64748b !important;
+    transition: all 0.2s ease !important;
+}
+
+.mud-nav-link:hover {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+}
+
+.mud-nav-link-active {
+    background: #ccff00 !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 12px rgba(204, 255, 0, 0.25) !important;
+}
+
+.mud-nav-link .mud-icon-root {
+    width: 20px !important;
+    height: 20px !important;
+}
+
+/* Chip / Badge */
+.mud-chip {
+    border-radius: 100px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+    padding: 3px 10px !important;
+}
+
+/* Dialog */
+.mud-dialog {
+    border-radius: 20px !important;
+}
+
+.mud-dialog-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    padding: 24px 24px 16px !important;
+}
+
+.mud-dialog-content {
+    padding: 0 24px 16px !important;
+}
+
+.mud-dialog-actions {
+    padding: 16px 24px !important;
+}
+
+/* Progress Linear */
+.mud-progress-linear {
+    border-radius: 100px !important;
+    height: 4px !important;
+}
+
+/* Icon Button */
+.mud-icon-button {
+    border-radius: 14px !important;
+    transition: all 0.2s ease;
+}
+
+.mud-icon-button:hover {
+    background: #f1f5f9 !important;
+}
+
+/* Select */
+.mud-select {
+    border-radius: 14px !important;
+}
+
+/* Switch */
+.mud-switch .mud-switch-track {
+    border-radius: 100px !important;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-up {
+    animation: fadeInUp 0.5s ease-out both;
+}
+
+.delay-1 { animation-delay: 0.06s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.18s; }
+.delay-4 { animation-delay: 0.24s; }
+.delay-5 { animation-delay: 0.30s; }
+.delay-6 { animation-delay: 0.36s; }
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Custom Stat Card */
+.stat-card {
+    background: #fff;
+    border: 1px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 24px;
+    transition: all 0.25s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
+}
+
+.stat-card.dark {
+    background: #0f172a;
+    border-color: #1e293b;
+    color: #fff;
+}
+
+/* Search Box */
+.search-box {
+    background: #f1f5f9;
+    border: 1.5px solid transparent;
+    border-radius: 14px;
+    padding: 10px 16px 10px 42px;
+    font-size: 13.5px;
+    color: #334155;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.search-box::placeholder {
+    color: #94a3b8;
+}
+
+.search-box:focus {
+    background: #fff;
+    border-color: #ccff00;
+    box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.15);
+}
+
+/* Typography */
+.mud-typography-h4 {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+}
+
+.mud-typography-h5 {
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+}
+
+.mud-typography-h6 {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+.mud-typography-body1 {
+    font-size: 13px !important;
+    color: #64748b !important;
+}
+
+.mud-typography-body2 {
+    font-size: 12px !important;
+    color: #94a3b8 !important;
+}

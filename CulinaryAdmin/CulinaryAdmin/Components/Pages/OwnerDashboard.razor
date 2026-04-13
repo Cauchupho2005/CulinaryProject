@@ -1,0 +1,238 @@
+@page "/owner-dashboard"
+@using CulinaryAdmin.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 pb-8 mb-6">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-1"><b>Xin chào, @_username! 👋</b></MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">Đây là tổng quan về quán ăn của bạn trên hệ thống.</MudText>
+
+    @* KPI Cards *@
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Storefront" Color="Color.Primary" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Số quán của tôi</MudText>
+                    <MudText Typo="Typo.h5"><b>@(_myPois?.Count ?? 0)</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Đã duyệt</MudText>
+                    <MudText Typo="Typo.h5"><b>@_approvedCount</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Chờ duyệt</MudText>
+                    <MudText Typo="Typo.h5"><b>@_pendingCount</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4 d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Large" Class="mr-4" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Bị từ chối</MudText>
+                    <MudText Typo="Typo.h5"><b>@_rejectedCount</b></MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Danh sách quán *@
+    <MudText Typo="Typo.h6" Class="mb-3">Quán của tôi</MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (_myPois == null || _myPois.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">
+            Bạn chưa có quán nào. Hãy đến mục <MudLink Href="/my-pois">Quán của tôi</MudLink> để thêm quán mới!
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var poi in _myPois)
+            {
+                <MudItem xs="12" md="6" lg="4">
+                    <MudCard Elevation="2" Style="height:100%;display:flex;flex-direction:column;">
+                        @if (!string.IsNullOrEmpty(poi.CoverImageUrl))
+                        {
+                            <MudCardMedia Image="@poi.CoverImageUrl" Height="180" Style="object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div style="height:180px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;">
+                                <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Large" Color="Color.Secondary" />
+                            </div>
+                        }
+                        <MudCardContent Style="flex:1;">
+                            <MudText Typo="Typo.h6" Class="mb-2"><b>@poi.Title</b></MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" /> @poi.Address
+                            </MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(poi.Status)" Variant="Variant.Filled">
+                                @GetStatusText(poi.Status)
+                            </MudChip>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Href="@GetMapUrl(poi)" Target="_blank" Variant="Variant.Text" Color="Color.Info" Size="Size.Small">
+                                Map
+                            </MudButton>
+                            <MudButton Href="/my-pois" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" FullWidth="true">
+                                Quản lý
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Top quán được quan tâm</MudText>
+    <MudPaper Elevation="1" Class="pa-3 mb-6">
+        @if (_visitStats.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Chưa có dữ liệu lượt truy cập.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_visitStats" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Quán</MudTh>
+                    <MudTh style="text-align:right;">Lượt truy cập</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Quán">@context.PoiTitle</MudTd>
+                    <MudTd DataLabel="Lượt truy cập" style="text-align:right;">
+                        <MudChip T="int" Color="Color.Info" Variant="Variant.Filled">@context.TotalVisits</MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+    @* Hướng dẫn nhanh *@
+    <MudText Typo="Typo.h6" Class="mt-6 mb-3">Hướng dẫn nhanh</MudText>
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.AddBusiness" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                <MudText Typo="Typo.subtitle1"><b>Thêm quán mới</b></MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Vào mục "Quán của tôi" → Thêm Quán Mới → Điền thông tin → Gửi duyệt.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.QrCode2" Color="Color.Success" Size="Size.Large" Class="mb-2" />
+                <MudText Typo="Typo.subtitle1"><b>Mã QR thuyết minh</b></MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Khách hàng dùng App quét mã QR tại quán để nghe thuyết minh tự động bằng nhiều ngôn ngữ.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="1" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.Map" Color="Color.Warning" Size="Size.Large" Class="mb-2" />
+                <MudText Typo="Typo.subtitle1"><b>Hiển thị trên bản đồ</b></MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Quán sau khi được duyệt sẽ xuất hiện trên bản đồ trong App với Ghim màu cam.</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<PoiModel>? _myPois;
+    private string _username = "Chủ quán";
+    private string? _userId;
+    private bool _isLoading = true;
+    private int _approvedCount = 0;
+    private int _pendingCount = 0;
+    private int _rejectedCount = 0;
+    private List<PoiVisitStatsModel> _visitStats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _username = user.Identity.Name ?? "Chủ quán";
+            // Lấy userId từ claims nếu có
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            _userId = userIdClaim?.Value;
+        }
+
+        try
+        {
+            var allUsers = await Http.GetFromJsonAsync<List<UserAdminModel>>("api/User");
+            var currentUser = allUsers?.FirstOrDefault(u => u.Username == _username);
+            var ownerId = currentUser?.OwnerId;  // Fix: Use OwnerId field, not Id!
+
+            var all = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&includeDeleted=true");
+            _myPois = all?.Where(p => p.OwnerId == ownerId).ToList() ?? new List<PoiModel>();
+
+            _approvedCount = _myPois.Count(p => p.Status == "approved");
+            _pendingCount = _myPois.Count(p => p.Status == "pending");
+            _rejectedCount = _myPois.Count(p => p.Status == "rejected");
+
+            var allVisitStats = await Http.GetFromJsonAsync<List<PoiVisitStatsModel>>("api/PoiVisit/stats") ?? new List<PoiVisitStatsModel>();
+            var ownerPoiIds = _myPois.Select(p => p.Id).Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet();
+            _visitStats = allVisitStats
+                .Where(s => ownerPoiIds.Contains(s.PoiId))
+                .OrderByDescending(s => s.TotalVisits)
+                .Take(10)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
+            _myPois = new List<PoiModel>();
+            _visitStats = new List<PoiVisitStatsModel>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "approved" => Color.Success,
+        "pending" => Color.Warning,
+        "rejected" => Color.Error,
+        "deleted" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(string status) => status switch
+    {
+        "approved" => "Đã duyệt",
+        "pending" => "Chờ duyệt",
+        "rejected" => "Từ chối",
+        "deleted" => "Đã xóa",
+        _ => "Không rõ"
+    };
+
+    private static string GetMapUrl(PoiModel poi)
+    {
+        if (poi.Location?.Coordinates == null || poi.Location.Coordinates.Length < 2)
+            return "https://maps.google.com";
+
+        var lng = poi.Location.Coordinates[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var lat = poi.Location.Coordinates[1].ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return $"https://www.google.com/maps?q={lat},{lng}";
+    }
+}

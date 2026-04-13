@@ -1,0 +1,194 @@
+@page "/users"
+@using CulinaryAdmin.Models
+@using CulinaryAdmin.Components.Dialogs
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Quản lý Người dùng</MudText>
+
+@if (_users == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@_users" Hover="true" Striped="true" Filter="new Func<UserAdminModel, bool>(FilterFunc)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Danh sách tài khoản</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Tìm theo tên, username, role..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          IconSize="Size.Medium" Class="mt-0" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Họ tên</MudTh>
+            <MudTh>Tên đăng nhập</MudTh>
+            <MudTh>Role</MudTh>
+            <MudTh>Owner ID</MudTh>
+            <MudTh>Trạng thái</MudTh>
+            <MudTh>Ngày tạo</MudTh>
+            <MudTh>Thao tác</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Họ tên">@(context.FullName ?? "—")</MudTd>
+            <MudTd DataLabel="Tên đăng nhập"><b>@context.Username</b></MudTd>
+            <MudTd DataLabel="Role">
+                <MudChip T="string" Size="Size.Small" Color="@GetRoleColor(context.Role)">@context.Role</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Owner ID">
+                <MudText Typo="Typo.caption" Style="font-family:monospace;">@(string.IsNullOrEmpty(context.OwnerId) ? "—" : context.OwnerId[..Math.Min(12, context.OwnerId.Length)] + "...")</MudText>
+            </MudTd>
+            <MudTd DataLabel="Trạng thái">
+                @if (context.IsActive)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Hoạt động</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error">Đã khoá</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Ngày tạo">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Thao tác">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(context))" />
+                <MudIconButton Icon="@(context.IsActive ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)"
+                               Color="@(context.IsActive ? Color.Error : Color.Success)" Size="Size.Small"
+                               OnClick="@(() => ToggleActive(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteUser(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private List<UserAdminModel>? _users;
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            _users = await Http.GetFromJsonAsync<List<UserAdminModel>>("api/User");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool FilterFunc(UserAdminModel u)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return (u.Username?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (u.FullName?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (u.Role?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private Color GetRoleColor(string? role) => role switch
+    {
+        "super_admin" => Color.Secondary,
+        "admin" => Color.Primary,
+        _ => Color.Default
+    };
+
+    private async Task OpenEditDialog(UserAdminModel user)
+    {
+        var parameters = new DialogParameters { ["User"] = user };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EditUserDialog>("Chỉnh sửa tài khoản", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var updated = (UpdateUserRequest)result.Data;
+            try
+            {
+                var response = await Http.PutAsJsonAsync($"api/User/{user.Id}", updated);
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Cập nhật thành công!", Severity.Success);
+                    await LoadUsers();
+                }
+                else
+                {
+                    Snackbar.Add("Lỗi khi cập nhật!", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task ToggleActive(UserAdminModel user)
+    {
+        var action = user.IsActive ? "khoá" : "mở khoá";
+        var p = new DialogParameters();
+        p.Add("ContentText", $"Bạn có chắc muốn {action} tài khoản '{user.Username}' không?");
+        p.Add("ButtonText", user.IsActive ? "Khoá" : "Mở khoá");
+        p.Add("Color", user.IsActive ? Color.Warning : Color.Success);
+        var d = await DialogService.ShowAsync<ConfirmDialog>($"Xác nhận {action}", p, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall });
+        var dr = await d.Result;
+        if (dr.Canceled) return;
+
+        try
+        {
+            var response = await Http.PatchAsync($"api/User/{user.Id}/toggle-active", null);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(user.IsActive ? "Đã khoá tài khoản!" : "Đã mở khoá tài khoản!", Severity.Info);
+                await LoadUsers();
+            }
+            else
+            {
+                Snackbar.Add("Lỗi khi thay đổi trạng thái!", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeleteUser(UserAdminModel user)
+    {
+        var p = new DialogParameters();
+        p.Add("ContentText", $"Bạn có chắc muốn xoá tài khoản '{user.Username}' không?");
+        p.Add("ButtonText", "Xoá");
+        p.Add("Color", Color.Error);
+        var d = await DialogService.ShowAsync<ConfirmDialog>("Xác nhận xoá", p, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall });
+        var dr = await d.Result;
+        if (dr.Canceled) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/User/{user.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Đã xoá tài khoản!", Severity.Success);
+                await LoadUsers();
+            }
+            else
+            {
+                Snackbar.Add("Lỗi khi xoá!", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+}

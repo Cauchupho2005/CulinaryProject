@@ -19,6 +19,12 @@ namespace CulinaryBackend.Models
 
         [BsonElement("localizations")]
         public Dictionary<string, PoiLocalization> Localizations { get; set; } = new();
+
+        [BsonElement("status")]
+        public string Status { get; set; } = "pending"; // pending, approved, rejected
+
+        [BsonElement("ownerId")]
+        public string? OwnerId { get; set; } // ID của chủ quán
     }
 
     public class PoiLocalization

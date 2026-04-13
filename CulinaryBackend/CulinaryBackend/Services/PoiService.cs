@@ -40,5 +40,24 @@ namespace CulinaryBackend.Services
         // 3. Thêm mới một địa điểm
         public async Task CreateAsync(Poi newPoi) =>
             await _poiCollection.InsertOneAsync(newPoi);
+
+        // 4. Lấy một địa điểm theo Id
+        public async Task<Poi?> GetByIdAsync(string id) =>
+            await _poiCollection.Find(p => p.Id == id).FirstOrDefaultAsync();
+
+        // 5. Cập nhật địa điểm
+        public async Task UpdateAsync(string id, Poi updatedPoi) =>
+            await _poiCollection.ReplaceOneAsync(p => p.Id == id, updatedPoi);
+
+        // 6. Xoá địa điểm
+        public async Task DeleteAsync(string id) =>
+            await _poiCollection.DeleteOneAsync(p => p.Id == id);
+
+        // 7. Cập nhật trạng thái (approve/reject)
+        public async Task UpdateStatusAsync(string id, string status)
+        {
+            var update = Builders<Poi>.Update.Set(p => p.Status, status);
+            await _poiCollection.UpdateOneAsync(p => p.Id == id, update);
+        }
     }
 }

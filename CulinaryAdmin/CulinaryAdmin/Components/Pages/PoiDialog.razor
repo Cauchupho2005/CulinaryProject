@@ -1,21 +1,22 @@
-﻿@using CulinaryAdmin.Models
+@using CulinaryAdmin.Models
 @using MudBlazor
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <DialogContent>
-        <MudForm @ref="_form" IsValid="@_success">
+        <MudForm Model="@PoiData" @ref="_form" IsValid="@_success" ValidationDelay="0">
             <MudGrid>
                 @* Hàng 1: Tên và Địa chỉ *@
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="PoiData.Title" Label="Tên quán (*)" Required="true" RequiredError="Bắt buộc phải nhập tên quán!" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="PoiData.Title" For="@(() => PoiData.Title)" Label="Tên quán (*)" Variant="Variant.Outlined" Clearable="true" Placeholder="Nhập tên quán..." />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="PoiData.Address" Label="Địa chỉ" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="PoiData.Address" For="@(() => PoiData.Address)" Label="Địa chỉ (*)" Variant="Variant.Outlined" Clearable="true" Placeholder="Nhập địa chỉ..." />
                 </MudItem>
 
                 @* Hàng 2: Mô tả *@
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="PoiData.Description" Label="Mô tả quán ăn" Lines="3" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="PoiData.Description" For="@(() => PoiData.Description)" Label="Mô tả quán ăn (*)" Lines="3" Variant="Variant.Outlined" Clearable="true" Placeholder="Nhập mô tả..." />
                 </MudItem>
 
                 @* Hàng 3: Link ảnh *@

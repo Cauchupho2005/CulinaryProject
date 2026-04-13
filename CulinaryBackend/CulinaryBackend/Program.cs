@@ -27,6 +27,8 @@ builder.Services.AddSingleton<IMongoDatabase>(database);
 // =================================================================
 
 builder.Services.AddSingleton<CulinaryBackend.Services.PoiService>();
+builder.Services.AddScoped<CulinaryBackend.Services.EmailService>();
+builder.Services.AddSingleton<CulinaryBackend.Services.PoiVisitService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

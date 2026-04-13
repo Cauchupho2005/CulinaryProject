@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace CulinaryApp.Models
 {
@@ -8,7 +8,7 @@ namespace CulinaryApp.Models
         public string? Id { get; set; }
 
         [JsonPropertyName("title")]
-        public string Title { get; set; } = "Đang tải...";
+        public string Title { get; set; } = string.Empty;
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
