@@ -15,12 +15,14 @@ namespace CulinaryBackend.Controllers
         private readonly PoiService _poiService;
         private readonly EmailService _emailService;
         private readonly IMongoCollection<UserModel> _usersCollection;
+        private readonly UserLogService _userLogService; // Đã thêm Log Service
 
-        public PoiController(PoiService poiService, EmailService emailService, IMongoDatabase mongoDatabase)
+        public PoiController(PoiService poiService, EmailService emailService, IMongoDatabase mongoDatabase, UserLogService userLogService)
         {
             _poiService = poiService;
             _emailService = emailService;
             _usersCollection = mongoDatabase.GetCollection<UserModel>("Users");
+            _userLogService = userLogService;
         }
 
         private static bool IsLikelyEmail(string? value)
@@ -48,12 +50,10 @@ namespace CulinaryBackend.Controllers
             return owner.Username;
         }
 
-        // HÀM XỬ LÝ LÕI: Lọc đúng ngôn ngữ và ép kiểu về dạng "phẳng" cho App MAUI
         private object HydrateAndFallback(Poi poi, string lang)
         {
             PoiLocalization content = null;
 
-            // Thuật toán Fallback 3 Tầng: Tìm ngôn ngữ yêu cầu -> Không có thì tìm Tiếng Anh (en) -> Không có nữa thì lấy Tiếng Việt (vi)
             if (poi.Localizations != null)
             {
                 if (poi.Localizations.ContainsKey(lang))
@@ -64,7 +64,6 @@ namespace CulinaryBackend.Controllers
                     content = poi.Localizations["vi"];
             }
 
-            // Trả về cấu trúc json phẳng khớp 100% với file PoiModel.cs của MAUI
             return new
             {
                 id = poi.Id,
@@ -78,7 +77,6 @@ namespace CulinaryBackend.Controllers
             };
         }
 
-        // API 1: Lấy tất cả (App MAUI gọi cái này, ví dụ: GET /api/poi?lang=ja)
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] string lang = "vi", [FromQuery] bool includeDeleted = false, [FromQuery] string? status = null)
         {
@@ -97,7 +95,6 @@ namespace CulinaryBackend.Controllers
             return Ok(result);
         }
 
-        // API 2: Tìm quán ăn gần đây
         [HttpGet("nearby")]
         public async Task<IActionResult> GetNearby(double lng, double lat, double radius = 3000, [FromQuery] string lang = "vi", [FromQuery] bool includeDeleted = false, [FromQuery] string? status = null)
         {
@@ -116,7 +113,6 @@ namespace CulinaryBackend.Controllers
             return Ok(result);
         }
 
-        // API 3: Thêm món ăn mới (Lát nữa chúng ta dùng để nhét Data test)
         [HttpPost]
         public async Task<IActionResult> Post(Poi newPoi)
         {
@@ -154,24 +150,24 @@ namespace CulinaryBackend.Controllers
                     $"<p>Quán <strong>{poiTitle}</strong> vừa được tạo và đang ở trạng thái <strong>{newPoi.Status}</strong>.</p>");
             }
 
-            // Trả về dữ liệu vừa tạo
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? newPoi.OwnerId;
+            await _userLogService.LogActionAsync(currentUser, "TẠO QUÁN ĂN", $"Đã tạo quán mới: {poiTitle}");
+
             return CreatedAtAction(nameof(Get), new { id = newPoi.Id }, newPoi);
         }
 
-        // API 4: Cập nhật POI (Admin dùng)
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(string id, [FromBody] JsonElement requestData)
         {
             var existing = await _poiService.GetByIdAsync(id);
             if (existing == null) return NotFound();
 
-            // Parse flat data from Admin
             var title = requestData.GetProperty("title").GetString();
             var description = requestData.TryGetProperty("description", out var descProp) ? descProp.GetString() : "";
             var address = requestData.TryGetProperty("address", out var addrProp) ? addrProp.GetString() : "";
             var coverImageUrl = requestData.TryGetProperty("coverImageUrl", out var imgProp) ? imgProp.GetString() : "";
 
-            // Preserve existing localizations and update vi
             existing.CoverImageUrl = coverImageUrl;
 
             if (existing.Localizations == null)
@@ -184,7 +180,6 @@ namespace CulinaryBackend.Controllers
             existing.Localizations["vi"].Description = description ?? "";
             existing.Localizations["vi"].Address = address ?? "";
 
-            // Update location if provided
             if (requestData.TryGetProperty("location", out var locationElement))
             {
                 var coords = locationElement.GetProperty("coordinates");
@@ -207,10 +202,13 @@ namespace CulinaryBackend.Controllers
                     $"[Culinary] Quán '{poiTitle}' đã được cập nhật",
                     $"<p>Thông tin quán <strong>{poiTitle}</strong> vừa được cập nhật trên hệ thống.</p><p>Trạng thái hiện tại: <strong>{existing.Status}</strong></p>");
             }
+
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "CẬP NHẬT QUÁN ĂN", $"Đã sửa thông tin quán: {GetPoiTitle(existing)}");
+
             return NoContent();
         }
-
-        // API 5: Xoá POI (status = deleted)
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
@@ -229,10 +227,13 @@ namespace CulinaryBackend.Controllers
                     $"[Culinary] Quán '{poiTitle}' đã bị xóa",
                     $"<p>Quán <strong>{poiTitle}</strong> vừa bị chuyển sang trạng thái <strong>deleted</strong>.</p>");
             }
+
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "XÓA QUÁN ĂN", $"Đã chuyển quán '{poiTitle}' sang thùng rác");
+
             return NoContent();
         }
-
-        // API 5.1: Khôi phục POI đã xoá
 
         [HttpPatch("{id}/restore")]
         public async Task<IActionResult> Restore(string id)
@@ -251,10 +252,14 @@ namespace CulinaryBackend.Controllers
                     $"[Culinary] Quán '{poiTitle}' đã được khôi phục",
                     $"<p>Quán <strong>{poiTitle}</strong> đã được khôi phục về trạng thái <strong>pending</strong>.</p>");
             }
+
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "KHÔI PHỤC QUÁN ĂN", $"Đã khôi phục quán '{poiTitle}' về trạng thái chờ duyệt");
+
             return NoContent();
         }
 
-        // API 6: Duyệt POI (Admin dùng)
         [HttpPatch("{id}/approve")]
         public async Task<IActionResult> Approve(string id)
         {
@@ -269,10 +274,14 @@ namespace CulinaryBackend.Controllers
             {
                 await _emailService.SendApprovalEmailAsync(ownerEmail, poiTitle, true);
             }
+
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "DUYỆT QUÁN ĂN", $"Đã duyệt cho phép quán '{poiTitle}' hoạt động");
+
             return NoContent();
         }
 
-        // API 7: Từ chối POI (Admin dùng)
         [HttpPatch("{id}/reject")]
         public async Task<IActionResult> Reject(string id)
         {
@@ -287,6 +296,11 @@ namespace CulinaryBackend.Controllers
             {
                 await _emailService.SendApprovalEmailAsync(ownerEmail, poiTitle, false);
             }
+
+            // GHI LOG
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "TỪ CHỐI QUÁN ĂN", $"Đã từ chối cấp phép cho quán '{poiTitle}'");
+
             return NoContent();
         }
     }

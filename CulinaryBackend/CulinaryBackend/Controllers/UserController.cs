@@ -11,11 +11,13 @@ namespace CulinaryBackend.Controllers
     {
         private readonly IMongoCollection<UserModel> _usersCollection;
         private readonly EmailService _emailService;
+        private readonly UserLogService _userLogService; // Đã thêm Log Service
 
-        public UserController(IMongoDatabase mongoDatabase, EmailService emailService)
+        public UserController(IMongoDatabase mongoDatabase, EmailService emailService, UserLogService userLogService)
         {
             _usersCollection = mongoDatabase.GetCollection<UserModel>("Users");
             _emailService = emailService;
+            _userLogService = userLogService;
         }
 
         private static bool IsLikelyEmail(string? value)
@@ -48,9 +50,13 @@ namespace CulinaryBackend.Controllers
 
             if (user.IsActive != request.IsActive && IsLikelyEmail(user.Username))
             {
-                var action = request.IsActive ? "mở khóa" : "khóa";
-                await _emailService.SendUserAccountEventEmailAsync(user.Username, user.Username, action);
+                var emailAction = request.IsActive ? "mở khóa" : "khóa";
+                await _emailService.SendUserAccountEventEmailAsync(user.Username, user.Username, emailAction);
             }
+
+            // GHI LOG VỚI TÊN NGƯỜI DÙNG THẬT
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "CẬP NHẬT TÀI KHOẢN", $"Đã cập nhật thông tin cho user ID: {id}");
 
             return Ok(new { message = "Cập nhật thành công!" });
         }
@@ -67,9 +73,14 @@ namespace CulinaryBackend.Controllers
 
             if (IsLikelyEmail(user.Username))
             {
-                var action = user.IsActive ? "khóa" : "mở khóa";
-                await _emailService.SendUserAccountEventEmailAsync(user.Username, user.Username, action);
+                var emailAction = user.IsActive ? "khóa" : "mở khóa";
+                await _emailService.SendUserAccountEventEmailAsync(user.Username, user.Username, emailAction);
             }
+
+            // GHI LOG VỚI TÊN NGƯỜI DÙNG THẬT
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            var actionName = !user.IsActive ? "MỞ KHÓA TÀI KHOẢN" : "KHÓA TÀI KHOẢN";
+            await _userLogService.LogActionAsync(currentUser, actionName, $"Tác động lên tài khoản: {user.Username}");
 
             return Ok(new { message = user.IsActive ? "Đã khoá tài khoản!" : "Đã mở khoá tài khoản!", isActive = !user.IsActive });
         }
@@ -88,6 +99,10 @@ namespace CulinaryBackend.Controllers
             {
                 await _emailService.SendUserAccountEventEmailAsync(user.Username, user.Username, "xóa");
             }
+
+            // GHI LOG VỚI TÊN NGƯỜI DÙNG THẬT
+            var currentUser = User.Identity?.Name ?? "Hệ thống";
+            await _userLogService.LogActionAsync(currentUser, "XÓA TÀI KHOẢN", $"Đã xóa vĩnh viễn tài khoản: {user.Username}");
 
             return Ok(new { message = "Đã xoá tài khoản!" });
         }
