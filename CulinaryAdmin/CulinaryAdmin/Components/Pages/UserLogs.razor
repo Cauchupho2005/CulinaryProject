@@ -1,0 +1,74 @@
+﻿@page "/user-logs"
+@attribute [Authorize(Roles = "admin")]
+@inject HttpClient Http
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-6"><b>Nhật ký hoạt động hệ thống</b></MudText>
+
+    <MudTable Items="@Logs" Hover="true" Striped="true" Filter="new Func<UserLogModel, bool>(FilterFunc)" Loading="@_isLoading" LoadingProgressColor="Color.Info" Elevation="2">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Lịch sử tác động dữ liệu</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Tìm theo tên user hoặc hành động..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Thời gian</MudTh>
+            <MudTh>Người thực hiện</MudTh>
+            <MudTh>Hành động</MudTh>
+            <MudTh>Chi tiết</MudTh>
+            <MudTh>Thiết bị</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Thời gian">@context.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+            <MudTd DataLabel="Người thực hiện"><MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">@context.Username</MudChip></MudTd>
+            <MudTd DataLabel="Hành động"><MudText Color="Color.Error" Typo="Typo.body2"><b>@context.Action</b></MudText></MudTd>
+            <MudTd DataLabel="Chi tiết">@context.Details</MudTd>
+            <MudTd DataLabel="Thiết bị">@context.DeviceInfo</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<UserLogModel> Logs = new();
+    private string searchString = "";
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Gọi API lấy dữ liệu từ Backend
+            Logs = await Http.GetFromJsonAsync<List<UserLogModel>>("api/Log") ?? new();
+        }
+        catch
+        {
+            // Nếu lỗi, để danh sách rỗng
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private bool FilterFunc(UserLogModel element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Username.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Action.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Details?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    // Class nhận dữ liệu từ Backend
+    public class UserLogModel
+    {
+        public string Username { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string? Details { get; set; }
+        public string? DeviceInfo { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+}
