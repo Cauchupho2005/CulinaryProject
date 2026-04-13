@@ -10,7 +10,7 @@ builder.Services.AddMudServices();
 // Đăng ký HttpClient với địa chỉ API của hệ thống
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("http://localhost:5000/")
+    BaseAddress = new Uri("https://culinary-api-backend.onrender.com")
 });
 
 // ================================================================
