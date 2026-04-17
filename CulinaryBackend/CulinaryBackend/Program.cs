@@ -31,6 +31,11 @@ builder.Services.AddSingleton<PoiService>();
 builder.Services.AddSingleton<UserLogService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<PoiVisitService>();
+// Đăng ký IMemoryCache mặc định của .NET
+builder.Services.AddMemoryCache();
+
+// Đăng ký ActiveUserTracker dưới dạng Singleton (chỉ tạo 1 bản duy nhất trên server)
+builder.Services.AddSingleton<ActiveUserTracker>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

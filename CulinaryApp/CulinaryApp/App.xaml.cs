@@ -1,17 +1,24 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using CulinaryApp.Services;
 
 namespace CulinaryApp
 {
     public partial class App : Application
     {
+       
+        private HeartbeatService _heartbeatService;
+
         public App()
         {
             InitializeComponent();
+            MainPage = new AppShell();
         }
 
-        protected override Window CreateWindow(IActivationState? activationState)
+        protected override void OnStart()
         {
-            return new Window(new AppShell());
+            base.OnStart();
+
+            _heartbeatService = new HeartbeatService();
+            _ = _heartbeatService.StartHeartbeatAsync();
         }
     }
 }
