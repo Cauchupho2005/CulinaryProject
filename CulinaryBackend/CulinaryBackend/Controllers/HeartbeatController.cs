@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CulinaryBackend.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/heartbeat")]
     [ApiController]
     public class HeartbeatController : ControllerBase
     {

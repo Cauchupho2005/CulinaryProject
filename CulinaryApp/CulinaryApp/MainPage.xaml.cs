@@ -6,7 +6,13 @@ using Mapsui.Projections;
 using System.Diagnostics;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Devices; // Thêm thư viện lấy thông tin thiết bị
 using System.Linq;
+using System.Net.Http.Json; // Thêm thư viện để gọi API
+using System;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace CulinaryApp
 {
@@ -25,6 +31,9 @@ namespace CulinaryApp
         private CancellationTokenSource _speechTokenSource;
 
         private string _currentLang = "vi";
+
+        // Thêm biến HttpClient để gọi API ngầm
+        private static readonly HttpClient _httpClient = new HttpClient();
 
         public MainPage()
         {
@@ -235,6 +244,11 @@ namespace CulinaryApp
 
             if (_myCurrentLocation != null)
             {
+                // =========================================================================
+                // BẮN TỌA ĐỘ VỀ SERVER ĐỂ ĐẾM SỐ NGƯỜI ONLINE (Kêu gọi ngầm không làm đơ UI)
+                _ = SendHeartbeatToServerAsync(_myCurrentLocation.Latitude, _myCurrentLocation.Longitude);
+                // =========================================================================
+
                 MainThread.BeginInvokeOnMainThread(() => {
                     var oldUserPin = MainMap.Pins.FirstOrDefault(p => p.Label == "Bạn đang ở đây");
                     if (oldUserPin != null) MainMap.Pins.Remove(oldUserPin);
@@ -263,6 +277,60 @@ namespace CulinaryApp
                     PoiCollectionView.ItemsSource = null;
                     PoiCollectionView.ItemsSource = _allPois;
                 });
+            }
+        }
+
+        // ================= HÀM GỬI NHỊP TIM (HEARTBEAT) LÊN SERVER =================
+        // ================= HÀM GỬI NHỊP TIM (HEARTBEAT) LÊN SERVER =================
+        private async Task SendHeartbeatToServerAsync(double lat, double lng)
+        {
+            try
+            {
+                // 1. Mặc định là link server thật khi Deploy (Production)
+                string apiUrl = "https://culinary-api-backend.onrender.com/api/heartbeat/ping";
+
+#if DEBUG
+                // 2. Tự động chuyển link khi chạy thử nghiệm
+                if (DeviceInfo.Platform == DevicePlatform.Android)
+                    apiUrl = "http://10.0.2.2:5000/api/heartbeat/ping";
+                else
+                    apiUrl = "http://localhost:5000/api/heartbeat/ping";
+#endif
+
+                // --- [BẮT ĐẦU ĐOẠN CODE MỚI SỬA] ---
+                // Lấy ID độc nhất của máy từ bộ nhớ tạm (Preferences)
+                string uniqueDeviceId = Preferences.Default.Get("AppUniqueDeviceId", "");
+
+                // Nếu máy này mới cài app, chưa có ID -> Tạo ID mới và lưu lại
+                if (string.IsNullOrEmpty(uniqueDeviceId))
+                {
+                    uniqueDeviceId = Guid.NewGuid().ToString(); // Tạo 1 chuỗi ngẫu nhiên độc nhất thế giới
+                    Preferences.Default.Set("AppUniqueDeviceId", uniqueDeviceId);
+                }
+
+                var requestData = new
+                {
+                    DeviceId = uniqueDeviceId, // Dùng ID độc nhất này thay cho tên máy
+                    Latitude = lat,
+                    Longitude = lng
+                };
+                // --- [KẾT THÚC ĐOẠN CODE MỚI SỬA] ---
+
+                var response = await _httpClient.PostAsJsonAsync(apiUrl, requestData);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"[Heartbeat] Đã gửi thành công ID {uniqueDeviceId} - tọa độ: {lat}, {lng}");
+                }
+                else
+                {
+                    string errorMsg = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[Heartbeat Lỗi] Mã: {response.StatusCode} - Chi tiết: {errorMsg}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Heartbeat Căng] Lỗi mạng không gọi được API: {ex.Message}");
             }
         }
 
