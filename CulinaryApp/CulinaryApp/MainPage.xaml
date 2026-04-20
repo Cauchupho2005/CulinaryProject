@@ -25,7 +25,7 @@
               VerticalOptions="{OnIdiom Desktop='Fill', Phone='End'}"
               WidthRequest="{OnIdiom Desktop='350', Phone='-1'}"
               HeightRequest="{OnIdiom Desktop='-1', Phone='400'}"
-              RowDefinitions="Auto, *" BackgroundColor="#1A1A1A">
+              RowDefinitions="Auto, *" BackgroundColor="#1A1A1A"> 
 
             <Border Grid.Row="0" BackgroundColor="#252525" Padding="15" StrokeThickness="0">
                 <Grid ColumnDefinitions="Auto, *, Auto">

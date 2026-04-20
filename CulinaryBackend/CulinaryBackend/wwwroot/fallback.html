@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Culinary Tour Guide - Thuyết minh</title>
+    <style>
+        /* Giao diện chuẩn Enterprise: Sạch sẽ, Hiện đại, Mobile First */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #f0f2f5;
+            color: #1c1e21;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            color: #e67e22;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        #status {
+            font-style: italic;
+            color: #65676b;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        #content {
+            text-align: justify;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+            color: #4b4b4b;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-direction: column;
+        }
+
+        button {
+            border: none;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+            button:active {
+                transform: scale(0.98);
+            }
+
+        #btnSpeak {
+            background: #e67e22;
+            color: white;
+        }
+
+        #btnMap {
+            background: #27ae60;
+            color: white;
+        }
+
+        .footer-note {
+            margin-top: 25px;
+            font-size: 12px;
+            color: #8a8d91;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="poiTitle">Đang kết nối...</h1>
+        <p id="status">Đang lấy nội dung thuyết minh từ máy chủ...</p>
+
+        <div id="content"></div>
+
+        <div class="button-group">
+            <button onclick="speak()" id="btnSpeak" style="display:none;">
+                <span>Nghe thuyết minh</span> 🔊
+            </button>
+            <button onclick="openMap()" id="btnMap" style="display:none;">
+                <span>Chỉ đường đi</span> 🗺️
+            </button>
+        </div>
+
+        <p class="footer-note">Cảm ơn bạn đã sử dụng Culinary Tour Guide</p>
+    </div>
+
+    <script>
+        let ttsContent = "";
+        let targetLat = 0;
+        let targetLng = 0;
+
+        // 1. Lấy thông tin từ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const poiId = urlParams.get('poiId');
+
+        // 2. Định danh thiết bị (Dùng LocalStorage để chống spam 1 phút ở Backend)
+        let deviceId = localStorage.getItem('web_device_id');
+        if (!deviceId) {
+            deviceId = 'web-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('web_device_id', deviceId);
+        }
+
+        // 3. Hàm tải dữ liệu 
+        async function loadData() {
+            if (!poiId) {
+                document.getElementById('poiTitle').innerText = "Thiếu thông tin";
+                document.getElementById('status').innerText = "Lỗi: Không tìm thấy mã địa điểm (poiId).";
+                return;
+            }
+
+            try {
+                
+                const response = await fetch(`/api/Poi/${poiId}/scan-fallback?deviceId=${deviceId}`);
+
+                if (!response.ok) throw new Error("Không thể tải dữ liệu");
+
+                const data = await response.json();
+
+                // Cập nhật giao diện
+                document.getElementById('poiTitle').innerText = data.title;
+                document.getElementById('content').innerText = data.description;
+                document.getElementById('status').innerText = "Đã sẵn sàng!";
+
+                // Lưu tọa độ để dùng cho Google Maps
+                targetLat = data.lat;
+                targetLng = data.lng;
+
+                // Hiện các nút bấm
+                document.getElementById('btnSpeak').style.display = "flex";
+                document.getElementById('btnMap').style.display = "flex";
+
+                ttsContent = data.description;
+
+                // Tự động phát nếu trình duyệt cho phép 
+                speak();
+
+            } catch (err) {
+                document.getElementById('poiTitle').innerText = "Lỗi kết nối";
+                document.getElementById('status').innerText = "Không thể kết nối đến máy chủ API.";
+                console.error(err);
+            }
+        }
+
+        // 4. Hàm phát âm thanh
+        function speak() {
+            if ('speechSynthesis' in window && ttsContent) {
+                window.speechSynthesis.cancel(); // Dừng các lượt đọc cũ
+                const msg = new SpeechSynthesisUtterance(ttsContent);
+                msg.lang = 'vi-VN'; // Đọc bằng giọng tiếng Việt
+                msg.rate = 1.0;     // Tốc độ đọc
+                window.speechSynthesis.speak(msg);
+            } else {
+                alert("Rất tiếc, trình duyệt của bạn không hỗ trợ tính năng phát âm thanh.");
+            }
+        }
+
+        // 5. Hàm mở Google Maps chỉ đường (Bước C bạn đang cần)
+        function openMap() {
+            if (targetLat !== 0 && targetLng !== 0) {
+                // Link chuẩn để Google Maps tự động lấy vị trí hiện tại của user làm điểm đi
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${targetLat},${targetLng}`;
+                window.open(googleMapsUrl, '_blank');
+            } else {
+                alert("Chưa có tọa độ địa điểm này.");
+            }
+        }
+
+        // Chạy hàm tải dữ liệu khi trang web vừa mở xong
+        window.onload = loadData;
+    </script>
+</body>
+</html>

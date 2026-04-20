@@ -549,14 +549,21 @@ namespace CulinaryApp
         // ================= XỬ LÝ TẠO MÃ QR TẠI CHỖ =================
         private void OnGenerateQRClicked(object sender, EventArgs e)
         {
-            if (_selectedPoi != null)
+            if (_selectedPoi != null && !string.IsNullOrEmpty(_selectedPoi.Id))
             {
-                string qrContent = !string.IsNullOrEmpty(_selectedPoi.Id) ? _selectedPoi.Id : _selectedPoi.Title;
+                string serverBaseUrl = "http://192.168.1.33:5000";
+                string qrContent = $"{serverBaseUrl}/fallback.html?poiId={_selectedPoi.Id}";
+
                 QrCodeGenerator.Value = qrContent;
                 QrPopupPanel.IsVisible = true;
             }
-        }
+            else
+            {
+                DisplayAlert("Thông báo", "Quán này chưa có mã định danh hợp lệ.", "OK");
+            }
+        } 
 
+        // HÀM ĐÓNG POPUP BÊN DƯỚI VẪN PHẢI ĐƯỢC GIỮ NGUYÊN
         private void OnCloseQRPopupClicked(object sender, EventArgs e)
         {
             QrPopupPanel.IsVisible = false;

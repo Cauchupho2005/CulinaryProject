@@ -53,6 +53,7 @@ app.UseCors();
 
 app.UseAuthorization();
 app.MapControllers();
+app.UseStaticFiles();
 
 // 5. CẤU HÌNH CỔNG (PORT) CHO RENDER
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
