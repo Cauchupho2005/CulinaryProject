@@ -267,7 +267,7 @@ namespace CulinaryApp
                     {
                         if (poi.Location?.Coordinates != null)
                         {
-                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
                             var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
                             double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
                             poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
@@ -280,7 +280,7 @@ namespace CulinaryApp
             }
         }
 
-        // ================= HÀM GỬI NHỊP TIM (HEARTBEAT) LÊN SERVER =================
+        
         // ================= HÀM GỬI NHỊP TIM (HEARTBEAT) LÊN SERVER =================
         private async Task SendHeartbeatToServerAsync(double lat, double lng)
         {
@@ -292,7 +292,7 @@ namespace CulinaryApp
 #if DEBUG
                 // 2. Tự động chuyển link khi chạy thử nghiệm
                 if (DeviceInfo.Platform == DevicePlatform.Android)
-                    apiUrl = "http://10.0.2.2:5000/api/heartbeat/ping";
+                    apiUrl = "http://192.168.1.33:5000/api/heartbeat/ping";
                 else
                     apiUrl = "http://localhost:5000/api/heartbeat/ping";
 #endif
