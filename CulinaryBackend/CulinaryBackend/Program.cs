@@ -29,8 +29,10 @@ builder.Services.AddSingleton<IMongoDatabase>(database);
 // 3. ĐĂNG KÝ CÁC SERVICE (Để logic chạy được)
 builder.Services.AddSingleton<PoiService>();
 builder.Services.AddSingleton<UserLogService>();
+builder.Services.AddSingleton<QrScanLogService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddSingleton<PoiVisitService>();
+
 // Đăng ký IMemoryCache mặc định của .NET
 builder.Services.AddMemoryCache();
 

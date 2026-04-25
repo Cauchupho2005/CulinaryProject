@@ -2,39 +2,60 @@
 
 namespace CulinaryBackend.Services
 {
+    // Thêm class này để gói dữ liệu tọa độ và thời gian
+    public class UserLocationInfo
+    {
+        public DateTime LastSeen { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+    }
+
     public class ActiveUserTracker
     {
-        // Dùng ConcurrentDictionary lưu thời điểm cuối cùng thiết bị gửi nhịp tim
-        private readonly ConcurrentDictionary<string, DateTime> _activeKeys = new();
+        // Đổi sang lưu UserLocationInfo thay vì chỉ DateTime
+        private readonly ConcurrentDictionary<string, UserLocationInfo> _activeUsers = new();
 
-        // Không cần IMemoryCache nữa
         public ActiveUserTracker()
         {
         }
 
-        // Hàm này bắt buộc phải giữ nguyên tham số (deviceId, lat, lng) để không bị lỗi với Controller
         public void Ping(string deviceId, double lat, double lng)
         {
-            // Cập nhật mốc thời gian mới nhất (UTC) cho thiết bị này
-            _activeKeys[deviceId] = DateTime.UtcNow;
+            _activeUsers[deviceId] = new UserLocationInfo
+            {
+                LastSeen = DateTime.UtcNow,
+                Latitude = lat,
+                Longitude = lng
+            };
         }
 
         public int GetActiveUserCount()
         {
-            // Ngưỡng 20 giây: Những ai gửi tín hiệu trước mốc này sẽ bị coi là đã offline
-            var threshold = DateTime.UtcNow.AddSeconds(-20);
+            CleanUpDeadUsers();
+            return _activeUsers.Count;
+        }
 
-            // 1. Tìm các thiết bị đã quá hạn 20 giây (Ghost users)
-            var deadUsers = _activeKeys.Where(kvp => kvp.Value < threshold).Select(kvp => kvp.Key).ToList();
+        // Lấy danh sách điểm nhiệt để vẽ bản đồ
+        public List<double[]> GetHeatmapData()
+        {
+            CleanUpDeadUsers();
+            
+            return _activeUsers.Values
+                .Where(u => u.Latitude != 0 && u.Longitude != 0) 
+                .Select(u => new double[] { u.Latitude, u.Longitude, 1.0 })
+                .ToList();
+        }
 
-            // 2. Chủ động xóa sổ các thiết bị này khỏi bộ nhớ để Web Admin hạ số người xuống
+        // Hàm dọn dẹp những thiết bị mất tín hiệu quá 30 giây
+        private void CleanUpDeadUsers()
+        {
+            var threshold = DateTime.UtcNow.AddSeconds(-30);
+            var deadUsers = _activeUsers.Where(kvp => kvp.Value.LastSeen < threshold).Select(kvp => kvp.Key).ToList();
+
             foreach (var dead in deadUsers)
             {
-                _activeKeys.TryRemove(dead, out _);
+                _activeUsers.TryRemove(dead, out _);
             }
-
-            // Trả về đúng số lượng người dùng đang thực sự online
-            return _activeKeys.Count;
         }
     }
 }

@@ -37,5 +37,13 @@ namespace CulinaryBackend.Controllers
             int count = _tracker.GetActiveUserCount();
             return Ok(new { ActiveUsers = count });
         }
+
+        // API 3: Dành cho Web Admin lấy tọa độ vẽ Bản đồ nhiệt (Heatmap)
+        [HttpGet("heatmap-data")]
+        public IActionResult GetHeatmapData()
+        {
+            var points = _tracker.GetHeatmapData();
+            return Ok(points);
+        }
     }
 }

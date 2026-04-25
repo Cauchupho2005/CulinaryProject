@@ -8,7 +8,7 @@ namespace CulinaryApp.Services
     public class ApiService
     {
         private readonly HttpClient _httpClient;
-        private const string BaseUrl = "http://192.168.1.33:5000/api/Poi";
+        private const string BaseUrl = "http://10.166.210.134:5000/api/Poi";
 
         public ApiService()
         {

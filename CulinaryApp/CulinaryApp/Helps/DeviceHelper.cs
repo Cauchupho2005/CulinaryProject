@@ -1,17 +1,20 @@
-﻿namespace CulinaryApp.Helpers
+﻿using Microsoft.Maui.Storage;
+using System;
+
+namespace CulinaryApp.Helpers
 {
     public static class DeviceHelper
     {
         public static string GetDeviceId()
         {
-            // Kiểm tra xem máy này đã có ID chưa
-            string deviceId = Preferences.Get("DeviceId", string.Empty);
+            // 1. Kiểm tra xem máy đã có ID lưu trong bộ nhớ chưa
+            string deviceId = Preferences.Default.Get("Device_ID", string.Empty);
 
-            // Nếu chưa có (mở app lần đầu), tạo mới và lưu lại
+            // 2. Nếu chưa có (lần đầu cài app), tạo mới và lưu lại vĩnh viễn
             if (string.IsNullOrEmpty(deviceId))
             {
                 deviceId = Guid.NewGuid().ToString();
-                Preferences.Set("DeviceId", deviceId);
+                Preferences.Default.Set("Device_ID", deviceId);
             }
 
             return deviceId;

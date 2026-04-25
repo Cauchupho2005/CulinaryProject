@@ -3,6 +3,7 @@
 @using CulinaryAdmin.Models
 @using System.Timers
 @inject HttpClient Http
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 @implements IDisposable
 
@@ -96,6 +97,8 @@
             </MudCard>
         </MudItem>
 
+        
+
         <MudItem xs="12" md="6">
             <MudCard Elevation="2">
                 <MudCardHeader><MudText Typo="Typo.h6">Lượt đăng ký mới (7 ngày)</MudText></MudCardHeader>
@@ -112,6 +115,15 @@
                     </MudTable>
                 </MudCardContent>
             </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mb-6 mt-4">
+        <MudItem xs="12">
+            <MudPaper Elevation="3" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Bản đồ Phân bổ Mật độ User (Heatmap)</MudText>
+                <div id="admin-heatmap" style="height: 500px; width: 100%; border-radius: 10px; z-index: 1;"></div>
+            </MudPaper>
         </MudItem>
     </MudGrid>
 
@@ -161,6 +173,8 @@
         
         // Thiết lập Timer cập nhật Active Users mỗi 5 giây
         await FetchActiveUsers();
+        await FetchHeatmapData(); // <-- BỔ SUNG: Vẽ Heatmap ngay lần đầu mở trang
+
         _timer = new Timer(5000);
         _timer.Elapsed += async (s, e) => await OnTimerElapsed();
         _timer.AutoReset = true;
@@ -222,6 +236,7 @@
     private async Task OnTimerElapsed()
     {
         await FetchActiveUsers();
+        await FetchHeatmapData(); // <-- BỔ SUNG: Cập nhật lại bản đồ sau mỗi 5 giây
         await InvokeAsync(StateHasChanged);
     }
 
@@ -234,6 +249,25 @@
         }
         catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
+
+    // ---> BỔ SUNG: HÀM MỚI ĐỂ GỌI API VÀ VẼ BẢN ĐỒ HEATMAP
+    private async Task FetchHeatmapData()
+    {
+        try
+        {
+            // ĐÃ DÙNG ĐƯỜNG DẪN TƯƠNG ĐỐI SIÊU TỐI ƯU
+            var points = await Http.GetFromJsonAsync<double[][]>("api/heartbeat/heatmap-data");
+            if (points != null)
+            {
+                await JSRuntime.InvokeVoidAsync("drawAdminHeatmap", "admin-heatmap", points);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Lỗi tải Heatmap: {ex.Message}");
+        }
+    }
+    // <--- KẾT THÚC BỔ SUNG
 
     private async Task ReloadVisitStats()
     {

@@ -6,9 +6,9 @@ using Mapsui.Projections;
 using System.Diagnostics;
 using Microsoft.Maui.Media;
 using Microsoft.Maui.Devices.Sensors;
-using Microsoft.Maui.Devices; // Thêm thư viện lấy thông tin thiết bị
+using Microsoft.Maui.Devices;
 using System.Linq;
-using System.Net.Http.Json; // Thêm thư viện để gọi API
+using System.Net.Http.Json;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -22,7 +22,6 @@ namespace CulinaryApp
         private List<PoiModel> _allPois = new();
         private PoiModel _selectedPoi;
         private Microsoft.Maui.Devices.Sensors.Location _myCurrentLocation;
-
         private IDispatcherTimer _gpsTimer;
         private IDispatcherTimer _heartbeatTimer;
         private Dictionary<string, DateTime> _cooldownTracker = new();
@@ -31,6 +30,8 @@ namespace CulinaryApp
         private CancellationTokenSource _speechTokenSource;
 
         private string _currentLang = "vi";
+        private bool _isDataInitialized = false; // CHỐT CHẶN 1: Ngăn load lại dữ liệu nhiều lần
+        private bool _isTrackingStarted = false; // CHỐT CHẶN 2: Ngăn đẻ thêm Timer
 
         // Thêm biến HttpClient để gọi API ngầm
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -59,7 +60,13 @@ namespace CulinaryApp
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            await InitializeDataAndStartTracking();
+
+            // Chỉ khởi tạo và tạo Timer ĐÚNG 1 LẦN DUY NHẤT khi mở app
+            if (!_isDataInitialized)
+            {
+                _isDataInitialized = true;
+                await InitializeDataAndStartTracking();
+            }
         }
 
         // ================= HÀM BỌC THÉP TỌA ĐỘ (CHỐNG CRASH) =================
@@ -94,7 +101,7 @@ namespace CulinaryApp
                     {
                         if (poi.Location?.Coordinates != null)
                         {
-                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
 
                             var pin = new Mapsui.UI.Maui.Pin()
                             {
@@ -110,7 +117,7 @@ namespace CulinaryApp
 
                     if (pois[0].Location?.Coordinates != null)
                     {
-                        var (firstLat, firstLng) = GetSafeCoordinates(pois[0].Location.Coordinates); // [ĐÃ BỌC THÉP]
+                        var (firstLat, firstLng) = GetSafeCoordinates(pois[0].Location.Coordinates);
                         MoveMapToLocation(firstLat, firstLng, 2);
                     }
                 });
@@ -172,7 +179,7 @@ namespace CulinaryApp
                     {
                         if (poi.Location?.Coordinates != null)
                         {
-                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                            var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
 
                             var pin = new Mapsui.UI.Maui.Pin()
                             {
@@ -192,7 +199,7 @@ namespace CulinaryApp
                         {
                             if (poi.Location?.Coordinates != null)
                             {
-                                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
                                 var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
                                 double distKm = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers);
                                 poi.DistanceText = $"📍 {Math.Round(distKm, 2)} km";
@@ -210,6 +217,9 @@ namespace CulinaryApp
         // ================= XỬ LÝ GPS =================
         private void StartRealtimeTracking()
         {
+            if (_isTrackingStarted) return; // CHỐT CHẶN: Nếu đã tạo Timer rồi thì tuyệt đối không tạo thêm
+            _isTrackingStarted = true;
+
             _gpsTimer = Dispatcher.CreateTimer();
             _gpsTimer.Interval = TimeSpan.FromSeconds(10);
             _gpsTimer.Tick += async (s, e) => await FetchGpsAndUpdateMap();
@@ -244,11 +254,7 @@ namespace CulinaryApp
 
             if (_myCurrentLocation != null)
             {
-                // =========================================================================
-                // BẮN TỌA ĐỘ VỀ SERVER ĐỂ ĐẾM SỐ NGƯỜI ONLINE (Kêu gọi ngầm không làm đơ UI)
-                _ = SendHeartbeatToServerAsync(_myCurrentLocation.Latitude, _myCurrentLocation.Longitude);
-                // =========================================================================
-
+                
                 MainThread.BeginInvokeOnMainThread(() => {
                     var oldUserPin = MainMap.Pins.FirstOrDefault(p => p.Label == "Bạn đang ở đây");
                     if (oldUserPin != null) MainMap.Pins.Remove(oldUserPin);
@@ -280,60 +286,6 @@ namespace CulinaryApp
             }
         }
 
-        
-        // ================= HÀM GỬI NHỊP TIM (HEARTBEAT) LÊN SERVER =================
-        private async Task SendHeartbeatToServerAsync(double lat, double lng)
-        {
-            try
-            {
-                // 1. Mặc định là link server thật khi Deploy (Production)
-                string apiUrl = "https://culinary-api-backend.onrender.com/api/heartbeat/ping";
-
-#if DEBUG
-                // 2. Tự động chuyển link khi chạy thử nghiệm
-                if (DeviceInfo.Platform == DevicePlatform.Android)
-                    apiUrl = "http://192.168.1.33:5000/api/heartbeat/ping";
-                else
-                    apiUrl = "http://localhost:5000/api/heartbeat/ping";
-#endif
-
-                // --- [BẮT ĐẦU ĐOẠN CODE MỚI SỬA] ---
-                // Lấy ID độc nhất của máy từ bộ nhớ tạm (Preferences)
-                string uniqueDeviceId = Preferences.Default.Get("AppUniqueDeviceId", "");
-
-                // Nếu máy này mới cài app, chưa có ID -> Tạo ID mới và lưu lại
-                if (string.IsNullOrEmpty(uniqueDeviceId))
-                {
-                    uniqueDeviceId = Guid.NewGuid().ToString(); // Tạo 1 chuỗi ngẫu nhiên độc nhất thế giới
-                    Preferences.Default.Set("AppUniqueDeviceId", uniqueDeviceId);
-                }
-
-                var requestData = new
-                {
-                    DeviceId = uniqueDeviceId, // Dùng ID độc nhất này thay cho tên máy
-                    Latitude = lat,
-                    Longitude = lng
-                };
-                // --- [KẾT THÚC ĐOẠN CODE MỚI SỬA] ---
-
-                var response = await _httpClient.PostAsJsonAsync(apiUrl, requestData);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Debug.WriteLine($"[Heartbeat] Đã gửi thành công ID {uniqueDeviceId} - tọa độ: {lat}, {lng}");
-                }
-                else
-                {
-                    string errorMsg = await response.Content.ReadAsStringAsync();
-                    Debug.WriteLine($"[Heartbeat Lỗi] Mã: {response.StatusCode} - Chi tiết: {errorMsg}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Heartbeat Căng] Lỗi mạng không gọi được API: {ex.Message}");
-            }
-        }
-
         // ================= ZONE DETECTION & AUDIO TTS =================
         private void CheckGeofencesAndAudio()
         {
@@ -346,7 +298,7 @@ namespace CulinaryApp
                 if (poi.Location?.Coordinates == null) continue;
                 string poiId = poi.Title;
 
-                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
                 var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
                 double distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers) * 1000;
 
@@ -486,7 +438,7 @@ namespace CulinaryApp
 
             if (poi.Location?.Coordinates != null)
             {
-                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
                 MoveMapToLocation(lat, lng, 1);
             }
         }
@@ -515,7 +467,7 @@ namespace CulinaryApp
         {
             if (_selectedPoi?.Location?.Coordinates != null)
             {
-                var (lat, lon) = GetSafeCoordinates(_selectedPoi.Location.Coordinates); // [ĐÃ BỌC THÉP]
+                var (lat, lon) = GetSafeCoordinates(_selectedPoi.Location.Coordinates);
 
                 if (DeviceInfo.Platform == DevicePlatform.WinUI)
                 {
@@ -551,7 +503,7 @@ namespace CulinaryApp
         {
             if (_selectedPoi != null && !string.IsNullOrEmpty(_selectedPoi.Id))
             {
-                string serverBaseUrl = "http://192.168.1.33:5000";
+                string serverBaseUrl = "http://10.166.210.134:5000";
                 string qrContent = $"{serverBaseUrl}/fallback.html?poiId={_selectedPoi.Id}";
 
                 QrCodeGenerator.Value = qrContent;
@@ -561,9 +513,8 @@ namespace CulinaryApp
             {
                 DisplayAlert("Thông báo", "Quán này chưa có mã định danh hợp lệ.", "OK");
             }
-        } 
+        }
 
-        // HÀM ĐÓNG POPUP BÊN DƯỚI VẪN PHẢI ĐƯỢC GIỮ NGUYÊN
         private void OnCloseQRPopupClicked(object sender, EventArgs e)
         {
             QrPopupPanel.IsVisible = false;
