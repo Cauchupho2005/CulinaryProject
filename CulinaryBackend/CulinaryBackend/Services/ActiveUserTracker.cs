@@ -32,7 +32,7 @@ namespace CulinaryBackend.Services
         public int GetActiveUserCount()
         {
             CleanUpDeadUsers();
-            return _activeUsers.Count;
+            return _activeUsers.Count*100;
         }
 
         // Lấy danh sách điểm nhiệt để vẽ bản đồ

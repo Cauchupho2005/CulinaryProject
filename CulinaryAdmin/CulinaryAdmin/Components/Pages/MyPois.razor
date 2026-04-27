@@ -41,7 +41,8 @@ else
             <MudTd DataLabel="Hình ảnh">
                 @if (!string.IsNullOrEmpty(context.CoverImageUrl))
                 {
-                    <MudImage Src="@context.CoverImageUrl" Width="60" Height="40" ObjectFit="ObjectFit.Cover" Class="rounded-lg" />
+                    <MudImage Src="@(context.CoverImageUrl.StartsWith("/") ? $"http://10.192.152.134:5000{context.CoverImageUrl}" : context.CoverImageUrl)"
+                              Width="60" Height="40" ObjectFit="ObjectFit.Cover" Class="rounded" />
                 }
                 else
                 {

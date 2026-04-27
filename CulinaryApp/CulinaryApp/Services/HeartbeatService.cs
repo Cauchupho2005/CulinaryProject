@@ -15,7 +15,7 @@ namespace CulinaryApp.Services
         {
             _httpClient = new HttpClient();
             // Sử dụng IP chuẩn 4G hiện tại của Sếp
-            _httpClient.BaseAddress = new Uri("http://10.166.210.134:5000");
+            _httpClient.BaseAddress = new Uri("http://10.192.152.134:5000");
         }
 
         public async Task StartHeartbeatAsync()

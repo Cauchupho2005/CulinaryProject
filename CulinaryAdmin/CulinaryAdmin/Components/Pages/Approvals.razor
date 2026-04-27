@@ -31,7 +31,8 @@ else
                 <MudCard Elevation="2" Style="height:100%;display:flex;flex-direction:column;">
                     @if (!string.IsNullOrEmpty(poi.CoverImageUrl))
                     {
-                        <MudCardMedia Image="@poi.CoverImageUrl" Height="180" Style="object-fit:cover;" />
+                        <MudCardMedia Image="@(poi.CoverImageUrl.StartsWith("/") ? $"http://10.192.152.134:5000{poi.CoverImageUrl}" : poi.CoverImageUrl)"
+                                      Height="180" />
                     }
                     else
                     {
@@ -80,12 +81,16 @@ else
     {
         try
         {
-            _pendingPois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&status=pending") ?? new List<PoiModel>();
+            var allPois = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi");
+            
+            if (allPois != null)
+            {
+                _pendingPois = allPois.Where(p => p.Status == "pending").ToList();
+            }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
-            _pendingPois = new List<PoiModel>();
         }
     }
 

@@ -38,11 +38,8 @@ else
             <MudTd DataLabel="Hình ảnh">
                 @if (!string.IsNullOrEmpty(context.CoverImageUrl))
                 {
-                    <MudImage Src="@context.CoverImageUrl" Width="80" Height="60" ObjectFit="ObjectFit.Cover" Class="rounded-lg" Style="border: 1px solid #e0e0e0;" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.ImageNotSupported" Size="Size.Large" Color="Color.Default" />
+                    <MudImage Src="@(context.CoverImageUrl.StartsWith("/") ? $"http://10.192.152.134:5000{context.CoverImageUrl}" : context.CoverImageUrl)"
+                              Alt="@context.Title" Width="80" Height="50" ObjectFit="ObjectFit.Cover" Class="rounded shadow-sm" />
                 }
             </MudTd>
             <MudTd DataLabel="Tên POI">

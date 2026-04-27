@@ -33,6 +33,6 @@ namespace CulinaryApp.Models
         public string Type { get; set; } = "Point";
 
         [JsonPropertyName("coordinates")]
-        public double[] Coordinates { get; set; } = new double[] { 0, 0 };
+        public double[] Coordinates { get; set; } = Array.Empty<double>();
     }
 }

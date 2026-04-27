@@ -1,9 +1,8 @@
 using CulinaryBackend.Models;
 using CulinaryBackend.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace CulinaryBackend.Controllers
 {
@@ -173,6 +172,41 @@ namespace CulinaryBackend.Controllers
             await _emailService.SendPoiEventEmailAsync(title, "từ chối", "rejected");
             await _userLogService.LogActionAsync("Admin", "TỪ CHỐI QUÁN ĂN", $"Đã từ chối quán: {title}");
             return NoContent();
+        }
+
+        // =========================================================================
+        // TÍNH NĂNG MỚI: API UPLOAD ẢNH VÀ LƯU VÀO WWWROOT CỦA BACKEND
+        // =========================================================================
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            // 1. Kiểm tra file gửi lên
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Không có file nào được chọn!" });
+
+            // 2. Tạo đường dẫn lưu file vật lý: wwwroot/images/poi
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "poi");
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            // 3. Đổi tên file để không bị trùng (Guid.NewGuid)
+            var fileExtension = Path.GetExtension(file.FileName);
+            var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            // 4. Copy dữ liệu file vào ổ cứng server
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            // 5. Trả về đường dẫn để Web Admin lưu vào MongoDB
+            var relativePath = $"/images/poi/{uniqueFileName}";
+
+            return Ok(new { url = relativePath });
         }
     }
 

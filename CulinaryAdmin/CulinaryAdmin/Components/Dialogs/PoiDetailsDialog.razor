@@ -6,7 +6,8 @@
             <MudItem xs="12">
                 @if (!string.IsNullOrWhiteSpace(PoiData.CoverImageUrl))
                 {
-                    <MudImage Src="@PoiData.CoverImageUrl" Class="rounded-lg" Style="width:100%;height:220px;object-fit:cover;" />
+                    <MudImage Src="@(PoiData.CoverImageUrl.StartsWith("/") ? $"http://10.192.152.134:5000{PoiData.CoverImageUrl}" : PoiData.CoverImageUrl)"
+                              Class="rounded-lg" Style="width:100%;height:220px;object-fit:cover;" />
                 }
             </MudItem>
             <MudItem xs="12">

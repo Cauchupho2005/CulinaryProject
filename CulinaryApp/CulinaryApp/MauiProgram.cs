@@ -21,7 +21,7 @@ namespace CulinaryApp
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-
+           
             return builder.Build();
         }
     }

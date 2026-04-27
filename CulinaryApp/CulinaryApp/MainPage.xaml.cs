@@ -4,15 +4,6 @@ using Mapsui.UI.Maui;
 using Mapsui.Tiling;
 using Mapsui.Projections;
 using System.Diagnostics;
-using Microsoft.Maui.Media;
-using Microsoft.Maui.Devices.Sensors;
-using Microsoft.Maui.Devices;
-using System.Linq;
-using System.Net.Http.Json;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace CulinaryApp
 {
@@ -503,7 +494,7 @@ namespace CulinaryApp
         {
             if (_selectedPoi != null && !string.IsNullOrEmpty(_selectedPoi.Id))
             {
-                string serverBaseUrl = "http://10.166.210.134:5000";
+                string serverBaseUrl = "http://10.192.152.134:5000";
                 string qrContent = $"{serverBaseUrl}/fallback.html?poiId={_selectedPoi.Id}";
 
                 QrCodeGenerator.Value = qrContent;
