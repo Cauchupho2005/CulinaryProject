@@ -23,5 +23,7 @@ namespace CulinaryBackend.Models
         public string? CoverImageUrl { get; set; }
 
         public GeoLocation? Location { get; set; }
+
+        public int Rank { get; set; } = 0;
     }
 }

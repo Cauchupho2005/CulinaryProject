@@ -32,6 +32,7 @@ namespace CulinaryBackend.Controllers
                 CoverImageUrl = poi.CoverImageUrl,
                 Status = poi.Status,
                 OwnerId = poi.OwnerId,
+                Rank = poi.Rank,
                 Location = poi.Location != null ? new GeoLocationDto { Type = poi.Location.Type, Coordinates = poi.Location.Coordinates } : null
             };
 
@@ -101,6 +102,7 @@ namespace CulinaryBackend.Controllers
                 Location = request.Location!,
                 OwnerId = request.OwnerId,
                 Status = "pending",
+                Rank = request.Rank,
                 Localizations = new Dictionary<string, PoiLocalization>
                 {
                     // Mặc định lưu vào tiếng Việt khi tạo mới
@@ -121,6 +123,12 @@ namespace CulinaryBackend.Controllers
             existingPoi.CoverImageUrl = request.CoverImageUrl ?? existingPoi.CoverImageUrl;
             existingPoi.OwnerId = request.OwnerId ?? existingPoi.OwnerId;
             existingPoi.Status = request.Status ?? existingPoi.Status;
+
+            // THÊM DÒNG NÀY (Nếu request có gửi Rank lên thì lấy, không thì giữ nguyên bản cũ)
+            if (request.Rank.HasValue)
+            {
+                existingPoi.Rank = request.Rank.Value;
+            }
 
             if (request.Location != null)
             {
@@ -224,6 +232,7 @@ namespace CulinaryBackend.Controllers
         public GeoLocationDto? Location { get; set; }
         public string Status { get; set; } = "pending";
         public string? OwnerId { get; set; }
+        public int Rank { get; set; }
     }
 
     public class GeoLocationDto

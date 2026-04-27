@@ -35,6 +35,8 @@ namespace CulinaryAdmin.Models
         public string DistanceText { get; set; } = "--- km";
 
         public double DistanceValue { get; set; }
+
+        public int Rank { get; set; } = 0;
     }
 
     public class GeoLocation

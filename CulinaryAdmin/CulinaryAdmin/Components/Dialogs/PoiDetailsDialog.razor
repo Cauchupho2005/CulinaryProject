@@ -1,4 +1,5 @@
 @using CulinaryAdmin.Models
+@inject HttpClient Http
 
 <MudDialog>
     <DialogContent>
@@ -11,7 +12,29 @@
                 }
             </MudItem>
             <MudItem xs="12">
-                <MudText Typo="Typo.h5"><b>@PoiData.Title</b></MudText>
+                <div class="d-flex align-center justify-space-between">
+                    <MudText Typo="Typo.h5"><b>@PoiData.Title</b></MudText>
+                    
+                    @* THÊM ĐOẠN HIỂN THỊ RANK Ở ĐÂY *@
+                    @switch (PoiData.Rank)
+                    {
+                        case 4:
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.Star">KIM CƯƠNG</MudChip>
+                            break;
+                        case 3:
+
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.ThumbUp">BẠCH KIM</MudChip>
+                            break;
+                        case 2:
+
+                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.Grade">VÀNG</MudChip>
+                            break;
+                        case 1:
+
+                            <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">BẠC</MudChip>
+                            break;
+                    }
+                </div>
                 <MudChip T="string" Size="Size.Small" Class="mt-2" Color="@GetStatusColor(PoiData.Status)">@GetStatusText(PoiData.Status)</MudChip>
             </MudItem>
             <MudItem xs="12">
@@ -21,11 +44,6 @@
             <MudItem xs="12">
                 <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Mô tả</MudText>
                 <MudText Typo="Typo.body2">@PoiData.Description</MudText>
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Href="@GetMapUrl(PoiData)" Target="_blank" Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Map">
-                    Xem trên Google Maps
-                </MudButton>
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -39,15 +57,6 @@
     [Parameter] public PoiModel PoiData { get; set; } = new();
 
     private void Close() => MudDialog.Close();
-
-    private static string GetMapUrl(PoiModel poi)
-    {
-        if (poi.Location?.Coordinates == null || poi.Location.Coordinates.Length < 2)
-            return "https://maps.google.com";
-        var lng = poi.Location.Coordinates[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var lat = poi.Location.Coordinates[1].ToString(System.Globalization.CultureInfo.InvariantCulture);
-        return $"https://www.google.com/maps?q={lat},{lng}";
-    }
 
     private static Color GetStatusColor(string? status) => status switch
     {

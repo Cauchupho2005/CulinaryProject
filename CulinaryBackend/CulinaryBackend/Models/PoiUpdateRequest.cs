@@ -9,5 +9,7 @@ namespace CulinaryBackend.Models
         public GeoLocation? Location { get; set; }
         public string? Status { get; set; }
         public string? OwnerId { get; set; }
+
+        public int? Rank { get; set; }
     }
 }

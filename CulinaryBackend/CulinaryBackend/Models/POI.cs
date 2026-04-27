@@ -25,6 +25,9 @@ namespace CulinaryBackend.Models
 
         [BsonElement("ownerId")]
         public string? OwnerId { get; set; } // ID của chủ quán
+
+        [BsonElement("rank")]
+        public int Rank { get; set; } = 0;
     }
 
     public class PoiLocalization

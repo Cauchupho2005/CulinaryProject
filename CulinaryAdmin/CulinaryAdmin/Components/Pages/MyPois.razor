@@ -25,7 +25,7 @@ else
                 Thêm Quán Mới
             </MudButton>
             <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Tìm theo tên hoặc địa chỉ..."
+            <MudTextField @bind-Value="_searchString" Placeholder="Tìm theo tên, địa chỉ hoặc hạng VIP..."
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           IconSize="Size.Medium" Class="mt-0" />
         </ToolBarContent>
@@ -33,6 +33,7 @@ else
             <MudTh>Hình ảnh</MudTh>
             <MudTh>Tên quán</MudTh>
             <MudTh>Địa chỉ</MudTh>
+            <MudTh>Thứ hạng (VIP)</MudTh>
             <MudTh>Trạng thái</MudTh>
             <MudTh>Toạ độ</MudTh>
             <MudTh>Thao tác</MudTh>
@@ -51,6 +52,26 @@ else
             </MudTd>
             <MudTd DataLabel="Tên quán"><b>@context.Title</b></MudTd>
             <MudTd DataLabel="Địa chỉ">@context.Address</MudTd>
+            <MudTd DataLabel="Thứ hạng">
+                @switch (context.Rank)
+                {
+                    case 4:
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.Star">KIM CƯƠNG</MudChip>
+                        break;
+                    case 3:
+                        <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.ThumbUp">BẠCH KIM</MudChip>
+                        break;
+                    case 2:
+                        <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.Grade">VÀNG</MudChip>
+                        break;
+                    case 1:
+                        <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">BẠC</MudChip>
+                        break;
+                    default:
+                        <MudText Typo="Typo.body2" Color="Color.Default" Class="ml-2">🥉 Đồng (Free)</MudText>
+                        break;
+                }
+            </MudTd>
             <MudTd DataLabel="Trạng thái">
                 <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@GetStatusText(context.Status)</MudChip>
             </MudTd>
@@ -109,7 +130,7 @@ else
         {
             var allUsers = await Http.GetFromJsonAsync<List<UserAdminModel>>("api/User");
             var currentUser = allUsers?.FirstOrDefault(u => u.Username == _username);
-            _ownerId = currentUser?.OwnerId;  // Fix: Use OwnerId field, not Id!
+            _ownerId = currentUser?.OwnerId;
 
             var all = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&includeDeleted=true");
             _pois = all?.Where(p => p.OwnerId == _ownerId).ToList() ?? new List<PoiModel>();
@@ -124,8 +145,19 @@ else
     private bool FilterFunction(PoiModel p)
     {
         if (string.IsNullOrWhiteSpace(_searchString)) return true;
+
+        string rankName = p.Rank switch
+        {
+            4 => "kim cương diamond vip4",
+            3 => "bạch kim platinum vip3",
+            2 => "vàng gold vip2",
+            1 => "bạc silver vip1",
+            _ => "đồng bronze free"
+        };
+
         return (p.Title?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
-            || (p.Address?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+            || (p.Address?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            || rankName.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task OpenAddDialog()
@@ -137,8 +169,8 @@ else
         if (!result.Canceled)
         {
             var newPoi = (PoiModel)result.Data;
-            newPoi.OwnerId = _ownerId; // Tự động gán OwnerId
-            newPoi.Status = "pending"; // Mặc định chờ duyệt
+            newPoi.OwnerId = _ownerId;
+            newPoi.Status = "pending";
             try
             {
                 var response = await Http.PostAsJsonAsync("api/Poi", newPoi);
@@ -162,19 +194,23 @@ else
 
     private async Task OpenEditDialog(PoiModel poi)
     {
-        var parameters = new DialogParameters { ["PoiData"] = new PoiModel
+        var parameters = new DialogParameters
         {
-            Id = poi.Id,
-            Title = poi.Title,
-            Address = poi.Address,
-            Description = poi.Description,
-            CoverImageUrl = poi.CoverImageUrl,
-            Location = poi.Location == null ? null : new GeoLocation
+            ["PoiData"] = new PoiModel
             {
-                Type = poi.Location.Type,
-                Coordinates = (double[])poi.Location.Coordinates.Clone()
+                Id = poi.Id,
+                Title = poi.Title,
+                Address = poi.Address,
+                Description = poi.Description,
+                CoverImageUrl = poi.CoverImageUrl,
+                Rank = poi.Rank, // Đã bổ sung Rank
+                Location = poi.Location == null ? null : new GeoLocation
+                {
+                    Type = poi.Location.Type,
+                    Coordinates = (double[])poi.Location.Coordinates.Clone()
+                }
             }
-        }};
+        };
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<PoiDialog>("Chỉnh sửa quán", parameters, options);
         var result = await dialog.Result;

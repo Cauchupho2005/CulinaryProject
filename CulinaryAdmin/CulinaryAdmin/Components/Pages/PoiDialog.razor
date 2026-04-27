@@ -20,6 +20,17 @@
                     <MudTextField @bind-Value="PoiData.Description" For="@(() => PoiData.Description)" Label="Mô tả quán ăn (*)" Lines="3" Variant="Variant.Outlined" Clearable="true" Placeholder="Nhập mô tả..." />
                 </MudItem>
 
+                @* THÊM HÀNG NÀY: Chọn gói VIP (Rank) *@
+                <MudItem xs="12">
+                    <MudSelect T="int" @bind-Value="PoiData.Rank" Label="Thứ hạng (Gói VIP)" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="0">🥉 Đồng (Mặc định - Free)</MudSelectItem>
+                        <MudSelectItem Value="1">🥈 Gói Bạc</MudSelectItem>
+                        <MudSelectItem Value="2">🥇 Gói Vàng</MudSelectItem>
+                        <MudSelectItem Value="3">💎 Gói Bạch Kim</MudSelectItem>
+                        <MudSelectItem Value="4">👑 Gói Kim Cương</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
                 @* Hàng 3: Nút Upload ảnh *@
                 <MudItem xs="12">
                     <MudFileUpload T="IBrowserFile" FilesChanged="UploadImage">

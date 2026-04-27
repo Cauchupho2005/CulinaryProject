@@ -24,6 +24,9 @@ namespace CulinaryApp.Models
 
         public string DistanceText { get; set; } = "--- km";
 
+        [JsonPropertyName("rank")]
+        public int Rank { get; set; }
+
         public double DistanceValue { get; set; }
     }
 

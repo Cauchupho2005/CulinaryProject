@@ -282,43 +282,58 @@ namespace CulinaryApp
         {
             if (_myCurrentLocation == null || _allPois == null || _allPois.Count == 0) return;
 
-            bool isInsideAnyZone = false;
-
-            foreach (var poi in _allPois)
-            {
-                if (poi.Location?.Coordinates == null) continue;
-                string poiId = poi.Title;
-
-                var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
-                var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
-                double distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers) * 1000;
-
-                if (distanceMeters <= 30)
+            // 1. Quét toàn bộ và tính toán khoảng cách cho các quán
+            var validCandidates = _allPois
+                .Where(poi => poi.Location?.Coordinates != null)
+                .Select(poi =>
                 {
-                    isInsideAnyZone = true;
+                    // Tính khoảng cách
+                    var (lat, lng) = GetSafeCoordinates(poi.Location.Coordinates);
+                    var poiLoc = new Microsoft.Maui.Devices.Sensors.Location(lat, lng);
+                    double distanceMeters = Microsoft.Maui.Devices.Sensors.Location.CalculateDistance(_myCurrentLocation, poiLoc, DistanceUnits.Kilometers) * 1000;
 
-                    if (_cooldownTracker.ContainsKey(poiId) && (DateTime.Now - _cooldownTracker[poiId]).TotalMinutes < 5)
-                        continue;
+                    return new { Poi = poi, Distance = distanceMeters, PoiId = poi.Title };
+                })
+                // Lọc 1: Lấy các quán trong bán kính 30m
+                .Where(x => x.Distance <= 30)
+                // Lọc 2: Bỏ qua những quán đang bị dính Cooldown (đã nghe trong vòng 5 phút)
+                .Where(x => !_cooldownTracker.ContainsKey(x.PoiId) || (DateTime.Now - _cooldownTracker[x.PoiId]).TotalMinutes >= 5)
+                .ToList();
 
-                    if (_pendingPoiId != poiId)
-                    {
-                        _pendingPoiId = poiId;
-                        _stayStartTime = DateTime.Now;
-                        Debug.WriteLine($"[Geofence] Đã bước vào {poi.Title}. Bắt đầu đếm 3s...");
-                    }
-                    else if ((DateTime.Now - _stayStartTime).TotalSeconds >= 3)
-                    {
-                        _cooldownTracker[poiId] = DateTime.Now;
-                        _pendingPoiId = null;
-                        TriggerAutoNarration(poi);
-                    }
-                    break;
+            if (validCandidates.Any())
+            {
+                // 2. LOGIC TIE-BREAKER (PHÂN ĐỊNH ƯU TIÊN Enterprise)
+                var bestCandidate = validCandidates
+                    .OrderByDescending(x => x.Poi.Rank)  // Ưu tiên 1: Quán mua gói VIP (Rank to) xếp trước
+                    .ThenBy(x => x.Distance)             // Ưu tiên 2: Nếu cùng Rank thì ông nào gần hơn xếp trước
+                    .First();
+
+                var poi = bestCandidate.Poi;
+                string poiId = bestCandidate.PoiId;
+
+                // 3. Xử lý đếm ngược 3 giây cho Quán "Vô địch"
+                if (_pendingPoiId != poiId)
+                {
+                    // Nếu phát hiện quán mới (hoặc quán VIP hơn nhảy vào tranh slot) -> Đếm lại 3s
+                    _pendingPoiId = poiId;
+                    _stayStartTime = DateTime.Now;
+                    Debug.WriteLine($"[Geofence] Đã bước vào {poi.Title} (Rank: {poi.Rank}, Cấp độ ưu tiên cao nhất). Bắt đầu đếm 3s...");
+                }
+                else if ((DateTime.Now - _stayStartTime).TotalSeconds >= 3)
+                {
+                    // Đã đứng đủ 3s -> Ghi nhận cooldown và phát TTS
+                    _cooldownTracker[poiId] = DateTime.Now;
+                    _pendingPoiId = null;
+                    TriggerAutoNarration(poi);
                 }
             }
-
-            if (!isInsideAnyZone && _pendingPoiId != null)
+            else
             {
-                _pendingPoiId = null;
+                // Khi user đi ra khỏi tất cả các vùng 30m (Hoặc tất cả các quán xung quanh đều đang trong thời gian Cooldown)
+                if (_pendingPoiId != null)
+                {
+                    _pendingPoiId = null;
+                }
             }
         }
 

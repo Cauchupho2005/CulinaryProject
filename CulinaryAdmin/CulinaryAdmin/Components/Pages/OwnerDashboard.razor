@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 pb-8 mb-6">
@@ -50,6 +51,17 @@
         </MudItem>
     </MudGrid>
 
+    @* Bản đồ nhiệt *@
+    <MudItem xs="12" Class="mb-6">
+        <MudPaper Elevation="3" Class="pa-4">
+            <div class="d-flex align-center justify-space-between mb-4">
+                <MudText Typo="Typo.h6">Bản đồ nhiệt khách hàng quanh bạn</MudText>
+                <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small">Thời gian thực</MudChip>
+            </div>
+            <div id="owner-heatmap" style="height: 400px; border-radius: 8px; border: 1px solid #e2e8f0;"></div>
+        </MudPaper>
+    </MudItem>
+
     @* Danh sách quán *@
     <MudText Typo="Typo.h6" Class="mb-3">Quán của tôi</MudText>
 
@@ -65,7 +77,7 @@
     }
     else
     {
-        <MudGrid>
+        <MudGrid Class="mb-6">
             @foreach (var poi in _myPois)
             {
                 <MudItem xs="12" md="6" lg="4">
@@ -170,7 +182,6 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             _username = user.Identity.Name ?? "Chủ quán";
-            // Lấy userId từ claims nếu có
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             _userId = userIdClaim?.Value;
         }
@@ -179,7 +190,7 @@
         {
             var allUsers = await Http.GetFromJsonAsync<List<UserAdminModel>>("api/User");
             var currentUser = allUsers?.FirstOrDefault(u => u.Username == _username);
-            var ownerId = currentUser?.OwnerId;  // Fix: Use OwnerId field, not Id!
+            var ownerId = currentUser?.OwnerId;
 
             var all = await Http.GetFromJsonAsync<List<PoiModel>>("api/Poi?lang=vi&includeDeleted=true");
             _myPois = all?.Where(p => p.OwnerId == ownerId).ToList() ?? new List<PoiModel>();
@@ -234,5 +245,26 @@
         var lng = poi.Location.Coordinates[0].ToString(System.Globalization.CultureInfo.InvariantCulture);
         var lat = poi.Location.Coordinates[1].ToString(System.Globalization.CultureInfo.InvariantCulture);
         return $"https://www.google.com/maps?q={lat},{lng}";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await FetchHeatmapData();
+        }
+    }
+
+    private async Task FetchHeatmapData()
+    {
+        try
+        {
+            var points = await Http.GetFromJsonAsync<double[][]>("api/heartbeat/heatmap-data");
+            if (points != null)
+            {
+                await JSRuntime.InvokeVoidAsync("drawAdminHeatmap", "owner-heatmap", points);
+            }
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 }
