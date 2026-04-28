@@ -26,7 +26,6 @@ namespace CulinaryApp.Models
 
         [JsonPropertyName("rank")]
         public int Rank { get; set; }
-
         public double DistanceValue { get; set; }
     }
 
